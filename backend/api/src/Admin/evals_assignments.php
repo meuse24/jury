@@ -36,13 +36,15 @@ $newIds  = array_values(array_unique($ids));
 $oldIds  = $existing['jury_assignments'] ?? [];
 $removed = array_diff($oldIds, $newIds);
 
-// Delete submissions of removed jury members
-$subRepo        = submission_repo();
-$deletedSubs    = [];
+// Delete all submissions of removed jury members (including all candidates)
+$subRepo     = submission_repo();
+$deletedSubs = [];
 foreach ($removed as $removedUserId) {
-    $sub = $subRepo->findByUserAndEvaluation($removedUserId, $id);
-    if ($sub !== null) {
-        $subRepo->delete($sub['id']);
+    $subs = $subRepo->findByUserAndEvaluation($removedUserId, $id);
+    if (!empty($subs)) {
+        foreach ($subs as $sub) {
+            $subRepo->delete($sub['id']);
+        }
         $deletedSubs[] = $removedUserId;
     }
 }
