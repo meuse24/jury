@@ -57,6 +57,7 @@ function make_evaluation(array $data): array
         'id'                   => generate_uuid(),
         'title'                => $data['title'],
         'description'          => $data['description'] ?? '',
+        'candidates'           => $data['candidates'] ?? [],
         'categories'           => $data['categories'] ?? [],
         'submission_open_at'   => $data['submission_open_at'],
         'submission_close_at'  => $data['submission_close_at'],
@@ -66,6 +67,15 @@ function make_evaluation(array $data): array
         'jury_assignments'     => [],
         'created_at'           => now_ts(),
         'updated_at'           => now_ts(),
+    ];
+}
+
+function make_candidate(string $name, string $description = ''): array
+{
+    return [
+        'id'          => generate_uuid(),
+        'name'        => $name,
+        'description' => $description,
     ];
 }
 
@@ -91,11 +101,12 @@ function make_category(string $name, string $description, int $maxScore): array
  *   "updated_at": timestamp
  * }
  */
-function make_submission(string $evaluationId, string $userId, array $scores, ?string $comment = null): array
+function make_submission(string $evaluationId, string $userId, array $scores, ?string $comment = null, ?string $candidateId = null): array
 {
     return [
         'id'            => generate_uuid(),
         'evaluation_id' => $evaluationId,
+        'candidate_id'  => $candidateId,
         'user_id'       => $userId,
         'scores'        => $scores,
         'comment'       => $comment,

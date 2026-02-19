@@ -84,13 +84,13 @@ export default function AdminEvalsPage() {
                     <Link to={`/admin/evaluations/${ev.id}/edit`}
                       className="text-indigo-600 hover:underline">Bearbeiten</Link>
                     <Link to={`/admin/evaluations/${ev.id}/assignments`}
-                      className="text-indigo-600 hover:underline">Zuweisung</Link>
+                      className="text-indigo-600 hover:underline">Jury & Status</Link>
                     <button onClick={() => togglePublish(ev)}
                       className={`hover:underline ${ev.results_is_published ? 'text-orange-600' : 'text-green-600'}`}>
                       {ev.results_is_published ? 'Zurückziehen' : 'Freigeben'}
                     </button>
-                    <a href={`/results/${ev.id}`} target="_blank" rel="noreferrer"
-                      className="text-gray-500 hover:underline">Ergebnisse</a>
+                    <Link to={`/results/${ev.id}`} target="_blank" rel="noreferrer"
+                      className="text-gray-500 hover:underline">Ergebnisse</Link>
                     <button onClick={() => del(ev.id, ev.title)}
                       className="text-red-600 hover:underline">Löschen</button>
                   </div>

@@ -20,17 +20,18 @@ if ($now >= $eval['submission_open_at'] && $now <= $eval['submission_close_at'])
     $status = 'closed';
 }
 
-$sub = submission_repo()->findByUserAndEvaluation($user['id'], $id);
+$subs = submission_repo()->findByUserAndEvaluation($user['id'], $id);
 
 json_response([
     'evaluation' => [
         'id'                  => $eval['id'],
         'title'               => $eval['title'],
         'description'         => $eval['description'],
+        'candidates'          => $eval['candidates'] ?? [],
         'categories'          => $eval['categories'],
         'submission_open_at'  => $eval['submission_open_at'],
         'submission_close_at' => $eval['submission_close_at'],
         'status'              => $status,
     ],
-    'submission' => $sub,
+    'submissions' => array_values($subs),
 ]);

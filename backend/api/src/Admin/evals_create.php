@@ -33,6 +33,17 @@ if (!is_array($categoriesRaw) || count($categoriesRaw) === 0) {
     json_error('NO_CATEGORIES', 'At least one category is required.', 422);
 }
 
+// Optional: candidates
+$candidatesRaw = $body['candidates'] ?? [];
+$candidates = [];
+foreach ($candidatesRaw as $i => $c) {
+    $cName = trim($c['name'] ?? '');
+    if ($cName === '') {
+        json_error('INVALID_CANDIDATE', "Candidate $i: name is required.", 422);
+    }
+    $candidates[] = make_candidate($cName, $c['description'] ?? '');
+}
+
 $categories = [];
 foreach ($categoriesRaw as $i => $cat) {
     $catName  = trim($cat['name'] ?? '');
@@ -49,6 +60,7 @@ foreach ($categoriesRaw as $i => $cat) {
 $eval = eval_repo()->create(make_evaluation([
     'title'                => $title,
     'description'          => $body['description'] ?? '',
+    'candidates'           => $candidates,
     'categories'           => $categories,
     'submission_open_at'   => $openAt,
     'submission_close_at'  => $closeAt,

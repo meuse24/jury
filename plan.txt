@@ -1,0 +1,132 @@
+Du bist ein Senior Full-Stack Engineer. Implementiere eine Client-Server Webapp (REST API) für eine Jury-Wertung unter folgenden Constraints:
+
+CONSTRAINTS / ZIEL:
+- Hosting: Shared hosting (World4You), Deployment via FTP in einen Ordner (die App liegt NICHT im Webroot, sondern in einem Unterordner, z.B. /jurysystem/).
+- Backend: PHP 8.x verfügbar. Keine Node runtime serverseitig.
+- Frontend: HTML + JS/TS; bevorzugt Astro mit React Islands ODER reines React SPA. Build mit Vite.
+- Output: Ein gemeinsamer deploybarer Ordner /dist (oder /public) enthält Frontend + /api Backend.
+- Datenspeicherung initial: JSON-Dateien (eine JSON pro Wertung/Evaluation). Später soll MySQL/MariaDB möglich sein (Repository Abstraction).
+- JSON Pfad kann NICHT außerhalb des Webroots liegen. Daher MUSS der Datenordner im deployten Ordner liegen, aber strikt per Webserver-Regeln gegen direkten HTTP-Zugriff geschützt werden (Apache .htaccess).
+- Features:
+  1) Admin kann User und Wertungen anlegen/verwalten.
+  2) Admin kann Jury-Mitglieder einer Wertung explizit zuweisen (Assignment/Whitelist).
+  3) Wertung enthält Bewertungskategorien, jede Kategorie hat maxScore (X). Jury vergibt Punkte 0..X.
+  4) Jury-Mitglieder können sich anmelden und innerhalb eines Zeitfensters ihre Wertung abgeben; nur zugewiesene Jury-Mitglieder dürfen diese Wertung sehen/abgeben.
+  5) Ergebnisse werden NICHT automatisch bei results_publish_at öffentlich: Stattdessen gibt es einen zweistufigen Mechanismus:
+     - Technische Publizierbarkeit frühestens ab results_publish_at (close + X Minuten)
+     - Zusätzlich muss ein Admin die Ergebnisse aktiv "freigeben" (publish toggle). Erst dann sind sie öffentlich sichtbar.
+  6) Nach Freigabe sind Ergebnisse öffentlich auf einer Seite pro Wertung einsehbar (ohne Login): /results/:evaluationId (oder /wertung/:id/ergebnis).
+  7) REST API endpoints für Auth, Admin, Jury, Public Results.
+
+WICHTIGE ENTSCHEIDUNGEN:
+- Nutze PHP Sessions (cookie-based) für Auth (login/logout/me).
+- RBAC: roles admin|jury.
+- JSON Storage muss file-locking + atomic writes nutzen (temp file + rename).
+- Datenordner liegt innerhalb deploytem Ordner, darf aber NICHT über HTTP abrufbar sein:
+  - Erzeuge eine .htaccess im data/ Ordner: "Require all denied" (Apache 2.4) plus Fallback für Apache 2.2.
+  - Stelle sicher, dass auch JSON Dateien, Index Dateien und Backups geblockt sind.
+- App liegt in Unterordner: berücksichtige BASE_PATH/BASE_URL in Frontend Routing und API Calls:
+  - z.B. BASE_PATH="/jurysystem"
+  - API Base URL relativ: `${BASE_PATH}/api/...`
+  - .htaccess muss RewriteBase berücksichtigen.
+
+JURY-ZUWEISUNG (Assignment):
+- Jede Evaluation hat eine Liste zugewiesener Jury-User-IDs (jury_assignments: [userId...]).
+- Nur Admin darf Assignments verwalten.
+- API muss bei allen Jury-Endpoints prüfen:
+  - user.role == "jury"
+  - user.id in evaluation.jury_assignments
+  - AND now within submission window (für submission endpoints)
+
+ERGEBNIS-FREIGABE (Public Publishing):
+- Evaluation hat folgende Felder:
+  - results_publish_at (timestamp; frühestens ab dann darf veröffentlicht werden)
+  - results_is_published (boolean; default false)
+  - results_published_at (timestamp, optional; wenn admin freigibt)
+- Public results endpoint und Public results page müssen prüfen:
+  - now >= results_publish_at AND results_is_published == true
+  - sonst: 404 oder 403 (entscheide und dokumentiere; Empfehlung: 404 um keine Infos zu leaken)
+
+AUFGABE A — PLANUNG (zwingend zuerst, keine Implementierung):
+1) Schreibe eine präzise Spezifikation:
+   - Seiten/Routes im Frontend (Admin, Jury, Public Results, Login)
+   - REST Endpoints (method + path + payload + response + auth requirements)
+   - Datenmodelle (User, Evaluation, Category, Submission, Assignments, Publishing fields) inkl. JSON-Struktur
+   - Validierungsregeln (Zeitfenster, Punktebereich, Pflichtfelder, publish-gating)
+   - Ergebnisberechnung (Summe pro Kategorie und total, ggf. Durchschnitt)
+2) Lege eine Projektstruktur fest, die im /dist deploybar ist:
+   - frontend/ (Astro oder React)
+   - backend/api/ (PHP)
+   - data/ (geschützt durch .htaccess)
+   - .htaccess routing:
+     - /api/* wird von PHP verarbeitet
+     - SPA/Frontend Routes fallback auf index.html
+     - RewriteBase passend zum Unterordner
+3) Definiere Interfaces/Repository Pattern (UserRepo, EvaluationRepo, SubmissionRepo) und eine Json-Implementierung.
+4) Definiere Sicherheitsmaßnahmen:
+   - session settings (cookie secure/httponly/samesite)
+   - password hashing
+   - RBAC middleware
+   - Zugriffsschutz data/ via .htaccess
+   - CSRF-Strategie: same-origin + session; dokumentiere, ob du CSRF Token brauchst (Empfehlung: bei state-changing requests CSRF Token oder Double-Submit Cookie).
+
+Stoppe danach und gib nur die Planung aus. Warte auf "GO IMPLEMENT".
+
+AUFGABE B — IMPLEMENTIERUNG (erst nach "GO IMPLEMENT"):
+Implementiere in kleinen, überprüfbaren Schritten. Nach jedem Schritt:
+- Liste geänderte/neu erstellte Dateien.
+- Zeige kurz, wie ich lokal teste (curl commands / simple manual checks).
+
+Implementierungsschritte:
+1) Backend Skeleton:
+   - /api/index.php router + JSON response helpers + error handling
+   - session init + config
+   - RBAC middleware (requireAuth, requireRole)
+   - Base path support: alle Routes funktionieren auch im Unterordner
+2) JSON Storage Layer:
+   - data path config innerhalb deploy folder
+   - atomic read/write mit flock + temp + rename
+   - Repositories + Interfaces
+   - .htaccess im data/ erzeugen
+3) Auth Endpoints:
+   - POST /api/auth/login
+   - POST /api/auth/logout
+   - GET /api/auth/me
+   - Admin seed user (CLI seed script oder initial JSON file)
+4) Admin Endpoints:
+   - CRUD users
+   - CRUD evaluations + categories + time windows
+   - Manage assignments (jury_assignments):
+     - PUT /api/admin/evaluations/:id/assignments { jury_user_ids: [...] }
+   - Publishing controls:
+     - POST /api/admin/evaluations/:id/publish-results
+     - POST /api/admin/evaluations/:id/unpublish-results
+     - enforce now >= results_publish_at for publish action (oder allow publish but results still hidden until time; dokumentiere Entscheidung)
+5) Jury Endpoints:
+   - list assigned evaluations (open/upcoming/closed)
+   - get evaluation detail + existing submission (only if assigned)
+   - put submission (validate points range & time window & assignment)
+6) Public results:
+   - GET /api/public/evaluations/:id/results with checks:
+     - now >= results_publish_at AND results_is_published == true
+   - compute aggregation
+7) Frontend:
+   - Astro/React pages for Login, Admin Users, Admin Evaluation Builder, Admin Assignments UI, Admin Publish Results UI, Jury Evaluation Form, Public Results page per evaluation
+   - API client wrapper (fetch with credentials include)
+   - Base path support (running in subfolder)
+   - Basic UI with Tailwind + minimal components
+8) Build & Deploy:
+   - Build outputs to /dist with correct base path
+   - Copy backend /api into /dist/api
+   - Ensure .htaccess correct for subfolder + deny data/
+   - Document FTP deployment steps for world4you + how to set base path
+
+QUALITÄTSKRITERIEN:
+- Keine großen Framework-Abhängigkeiten im PHP; keep it simple.
+- Konsistente JSON error responses: { "error": { "code": "...", "message": "...", "details": ... } }
+- Saubere Validierung und klare HTTP Status Codes (401/403/404/422/409 etc).
+- data/ darf nicht per HTTP lesbar sein (teste mit curl).
+- Code verständlich, modular, und migration-ready auf MySQL via Repository Austausch.
+
+ASSUMPTIONS:
+- Wenn etwas unklar ist, triff sinnvolle Annahmen und dokumentiere sie im Abschnitt "Assumptions".

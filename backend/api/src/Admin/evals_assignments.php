@@ -32,5 +32,23 @@ foreach ($ids as $uid) {
     }
 }
 
-$updated = $evalRepo->update($id, ['jury_assignments' => array_values(array_unique($ids))]);
-json_response(['evaluation' => $updated]);
+$newIds  = array_values(array_unique($ids));
+$oldIds  = $existing['jury_assignments'] ?? [];
+$removed = array_diff($oldIds, $newIds);
+
+// Delete submissions of removed jury members
+$subRepo        = submission_repo();
+$deletedSubs    = [];
+foreach ($removed as $removedUserId) {
+    $sub = $subRepo->findByUserAndEvaluation($removedUserId, $id);
+    if ($sub !== null) {
+        $subRepo->delete($sub['id']);
+        $deletedSubs[] = $removedUserId;
+    }
+}
+
+$updated = $evalRepo->update($id, ['jury_assignments' => $newIds]);
+json_response([
+    'evaluation'              => $updated,
+    'deleted_submissions_for' => $deletedSubs,
+]);

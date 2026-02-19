@@ -13,12 +13,13 @@ require_once __DIR__ . '/src/Middleware/session.php';
 require_once __DIR__ . '/src/Middleware/rbac.php';
 
 // ---- CORS (allow same-origin + local dev) ----
-$allowedOrigins = [
+// These origins are also trusted for CSRF (see check_csrf in rbac.php).
+define('CORS_ALLOWED_ORIGINS', [
     'http://localhost:5173',  // Vite dev server
     'http://localhost:4321',  // Astro dev server
-];
+]);
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins, true)) {
+if (in_array($origin, CORS_ALLOWED_ORIGINS, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
@@ -94,6 +95,10 @@ function dispatch(string $method, string $route): void
         $_route_params = ['id' => $m[1]];
         if ($method === 'PUT') { require __DIR__ . '/src/Admin/evals_assignments.php'; return; }
     }
+    if (preg_match('#^/admin/evaluations/([^/]+)/submissions$#', $route, $m)) {
+        $_route_params = ['id' => $m[1]];
+        if ($method === 'GET') { require __DIR__ . '/src/Admin/evals_submissions.php'; return; }
+    }
     if (preg_match('#^/admin/evaluations/([^/]+)/publish-results$#', $route, $m)) {
         $_route_params = ['id' => $m[1]];
         if ($method === 'POST') { require __DIR__ . '/src/Admin/evals_publish.php'; return; }
@@ -113,6 +118,11 @@ function dispatch(string $method, string $route): void
         $_route_params = ['id' => $m[1]];
         if ($method === 'GET') { require __DIR__ . '/src/Jury/submission_get.php'; return; }
         if ($method === 'PUT') { require __DIR__ . '/src/Jury/submission_put.php'; return; }
+    }
+    if (preg_match('#^/jury/evaluations/([^/]+)/candidates/([^/]+)/submission$#', $route, $m)) {
+        $_route_params = ['id' => $m[1], 'candidate_id' => $m[2]];
+        if ($method === 'GET') { require __DIR__ . '/src/Jury/candidate_submission_get.php'; return; }
+        if ($method === 'PUT') { require __DIR__ . '/src/Jury/candidate_submission_put.php'; return; }
     }
 
     // Public routes

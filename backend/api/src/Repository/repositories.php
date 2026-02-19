@@ -94,7 +94,10 @@ class JsonEvaluationRepository implements EvaluationRepository
 interface SubmissionRepository
 {
     public function findByEvaluation(string $evaluationId): array;
-    public function findByUserAndEvaluation(string $userId, string $evaluationId): ?array;
+    /** All submissions for this user in this evaluation (one per candidate, or one if no candidates) */
+    public function findByUserAndEvaluation(string $userId, string $evaluationId): array;
+    /** Single submission for user + evaluation + candidate (null = no-candidate mode) */
+    public function findByUserEvaluationAndCandidate(string $userId, string $evaluationId, ?string $candidateId): ?array;
     public function upsert(string $userId, string $evaluationId, array $submissionData): array;
     public function delete(string $id): bool;
 }
@@ -111,18 +114,29 @@ class JsonSubmissionRepository implements SubmissionRepository
         return $this->store->findWhere(self::STORE, fn($s) => $s['evaluation_id'] === $evaluationId);
     }
 
-    public function findByUserAndEvaluation(string $userId, string $evaluationId): ?array
+    public function findByUserAndEvaluation(string $userId, string $evaluationId): array
+    {
+        return $this->store->findWhere(
+            self::STORE,
+            fn($s) => $s['user_id'] === $userId && $s['evaluation_id'] === $evaluationId
+        );
+    }
+
+    public function findByUserEvaluationAndCandidate(string $userId, string $evaluationId, ?string $candidateId): ?array
     {
         $results = $this->store->findWhere(
             self::STORE,
-            fn($s) => $s['user_id'] === $userId && $s['evaluation_id'] === $evaluationId
+            fn($s) => $s['user_id'] === $userId
+                && $s['evaluation_id'] === $evaluationId
+                && ($s['candidate_id'] ?? null) === $candidateId
         );
         return $results[0] ?? null;
     }
 
     public function upsert(string $userId, string $evaluationId, array $submissionData): array
     {
-        $existing = $this->findByUserAndEvaluation($userId, $evaluationId);
+        $candidateId = $submissionData['candidate_id'] ?? null;
+        $existing    = $this->findByUserEvaluationAndCandidate($userId, $evaluationId, $candidateId);
         if ($existing !== null) {
             $changes = array_merge($submissionData, ['updated_at' => now_ts()]);
             return $this->store->update(self::STORE, $existing['id'], $changes);
@@ -130,6 +144,7 @@ class JsonSubmissionRepository implements SubmissionRepository
         $submissionData['id']            = generate_uuid();
         $submissionData['user_id']       = $userId;
         $submissionData['evaluation_id'] = $evaluationId;
+        $submissionData['candidate_id']  = $candidateId;
         $submissionData['submitted_at']  = now_ts();
         $submissionData['updated_at']    = now_ts();
         return $this->store->insert(self::STORE, $submissionData);

@@ -6,9 +6,14 @@
 // Base path when deployed in a subfolder (no trailing slash)
 define('BASE_PATH', getenv('APP_BASE_PATH') ?: '/jurysystem');
 
-// Data directory: one level above api/, sibling of index.html
-// In dist layout: dist/data/
-define('DATA_DIR', realpath(__DIR__ . '/../../data') ?: (__DIR__ . '/../../data'));
+// Data directory auto-detection:
+//   dist layout:  api/ sits next to data/  → ../data
+//   dev layout:   backend/api/ → ../../data
+$_dataDir = is_dir(__DIR__ . '/../data')
+    ? realpath(__DIR__ . '/../data')   // dist: /apps/jury/data
+    : realpath(__DIR__ . '/../../data'); // dev: /projects/jury/data
+define('DATA_DIR', $_dataDir ?: __DIR__ . '/../data');
+unset($_dataDir);
 
 // Session settings
 define('SESSION_NAME', 'jury_sess');

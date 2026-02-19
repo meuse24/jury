@@ -42,10 +42,14 @@ export default function JuryDashboardPage() {
             <div key={ev.id} className="bg-white shadow rounded-lg p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h2 className="text-lg font-semibold">{ev.title}</h2>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${st.cls}`}>{st.label}</span>
-                    {ev.has_submission && (
+                    {ev.candidate_count > 0 ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-medium">
+                        {ev.submission_summary} Kandidaten bewertet
+                      </span>
+                    ) : ev.has_submission && (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-medium">Abgegeben</span>
                     )}
                   </div>

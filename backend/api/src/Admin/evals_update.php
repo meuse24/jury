@@ -36,6 +36,22 @@ if ($closeAt <= $openAt) {
     json_error('INVALID_WINDOW', 'submission_close_at must be after submission_open_at.', 422);
 }
 
+if (array_key_exists('candidates', $body)) {
+    $candidatesRaw = $body['candidates'];
+    if (!is_array($candidatesRaw)) {
+        json_error('INVALID_CANDIDATES', 'candidates must be an array.', 422);
+    }
+    $candidates = [];
+    foreach ($candidatesRaw as $i => $c) {
+        $cName = trim($c['name'] ?? '');
+        if ($cName === '') json_error('INVALID_CANDIDATE', "Candidate $i: name required.", 422);
+        $candidates[] = isset($c['id'])
+            ? ['id' => $c['id'], 'name' => $cName, 'description' => $c['description'] ?? '']
+            : make_candidate($cName, $c['description'] ?? '');
+    }
+    $changes['candidates'] = $candidates;
+}
+
 if (array_key_exists('categories', $body)) {
     $categoriesRaw = $body['categories'];
     if (!is_array($categoriesRaw) || count($categoriesRaw) === 0) {

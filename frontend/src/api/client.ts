@@ -58,10 +58,17 @@ export interface Category {
   max_score: number
 }
 
+export interface Candidate {
+  id: string
+  name: string
+  description: string
+}
+
 export interface Evaluation {
   id: string
   title: string
   description: string
+  candidates: Candidate[]
   categories: Category[]
   submission_open_at: number
   submission_close_at: number
@@ -81,6 +88,8 @@ export interface JuryEvaluationSummary {
   submission_close_at: number
   status: 'upcoming' | 'open' | 'closed'
   has_submission: boolean
+  candidate_count: number
+  submission_summary: string
 }
 
 export interface ScoreEntry {
@@ -92,6 +101,7 @@ export interface Submission {
   id: string
   evaluation_id: string
   user_id: string
+  candidate_id: string | null
   scores: ScoreEntry[]
   comment: string | null
   submitted_at: number
@@ -106,15 +116,31 @@ export interface CategoryResult {
   average: number | null
 }
 
+export interface AggregatedResult {
+  submission_count: number
+  total_sum: number
+  total_max: number
+  total_average: number | null
+  max_per_entry: number
+  categories: CategoryResult[]
+}
+
+export interface CandidateResult {
+  id: string
+  name: string
+  description: string
+  rank: number
+  results: AggregatedResult
+}
+
 export interface PublicResults {
   evaluation: { id: string; title: string; description: string; published_at: number | null }
-  results: {
-    submission_count: number
-    total_sum: number
-    total_max: number
-    total_average: number | null
-    categories: CategoryResult[]
-  }
+  mode: 'simple' | 'candidates'
+  // simple mode
+  results?: AggregatedResult
+  // candidates mode
+  total_jury_count?: number
+  candidates?: CandidateResult[]
 }
 
 // ---- Auth API ----
@@ -136,8 +162,28 @@ export const adminUsers = {
 }
 
 // ---- Admin: Evaluations ----
-export type EvalPayload = Omit<Partial<Evaluation>, 'categories'> & {
+export type EvalPayload = Omit<Partial<Evaluation>, 'categories' | 'candidates'> & {
   categories?: Array<Omit<Category, 'id'> & { id?: string }>
+  candidates?: Array<Omit<Candidate, 'id'> & { id?: string }>
+}
+
+export interface JurySubmissionStatus {
+  user_id: string
+  name: string
+  username: string
+  has_submission: boolean
+  submitted_at: number | null
+  updated_at: number | null
+  // candidates mode extras
+  submission_count?: number
+  candidate_count?: number
+  candidates?: Array<{
+    candidate_id: string
+    candidate_name: string
+    has_submission: boolean
+    submitted_at: number | null
+    updated_at: number | null
+  }>
 }
 
 export const adminEvals = {
@@ -147,18 +193,24 @@ export const adminEvals = {
   update:      (id: string, data: EvalPayload) => put<{ evaluation: Evaluation }>(`/admin/evaluations/${id}`, data),
   delete:      (id: string)            => del<{ message: string }>(`/admin/evaluations/${id}`),
   setAssignments: (id: string, jury_user_ids: string[]) =>
-    put<{ evaluation: Evaluation }>(`/admin/evaluations/${id}/assignments`, { jury_user_ids }),
+    put<{ evaluation: Evaluation; deleted_submissions_for: string[] }>(`/admin/evaluations/${id}/assignments`, { jury_user_ids }),
+  getSubmissions: (id: string) =>
+    get<{ submissions: JurySubmissionStatus[]; has_candidates: boolean }>(`/admin/evaluations/${id}/submissions`),
   publish:     (id: string)            => post<{ evaluation: Evaluation }>(`/admin/evaluations/${id}/publish-results`),
   unpublish:   (id: string)            => post<{ evaluation: Evaluation }>(`/admin/evaluations/${id}/unpublish-results`),
 }
 
 // ---- Jury API ----
 export const jury = {
-  listEvals:     ()           => get<{ evaluations: JuryEvaluationSummary[] }>('/jury/evaluations'),
-  getEval:       (id: string) => get<{ evaluation: Evaluation & { status: string }; submission: Submission | null }>(`/jury/evaluations/${id}`),
-  getSubmission: (id: string) => get<{ submission: Submission | null }>(`/jury/evaluations/${id}/submission`),
+  listEvals: () => get<{ evaluations: JuryEvaluationSummary[] }>('/jury/evaluations'),
+  getEval:   (id: string) =>
+    get<{ evaluation: Evaluation & { status: string }; submissions: Submission[] }>(`/jury/evaluations/${id}`),
   putSubmission: (id: string, scores: ScoreEntry[], comment?: string) =>
     put<{ submission: Submission }>(`/jury/evaluations/${id}/submission`, { scores, comment }),
+  getCandidateSubmission: (id: string, candidateId: string) =>
+    get<{ submission: Submission | null }>(`/jury/evaluations/${id}/candidates/${candidateId}/submission`),
+  putCandidateSubmission: (id: string, candidateId: string, scores: ScoreEntry[], comment?: string) =>
+    put<{ submission: Submission }>(`/jury/evaluations/${id}/candidates/${candidateId}/submission`, { scores, comment }),
 }
 
 // ---- Public API ----

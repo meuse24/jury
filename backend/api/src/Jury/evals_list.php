@@ -1,12 +1,10 @@
 <?php
 // GET /api/jury/evaluations
-// Returns evaluations the logged-in jury member is assigned to,
-// each annotated with: status (upcoming/open/closed), has_submission
 
 require_once __DIR__ . '/../Repository/repositories.php';
 $user = require_role('jury');
 
-$now     = now_ts();
+$now      = now_ts();
 $allEvals = eval_repo()->findAll();
 $subRepo  = submission_repo();
 
@@ -23,7 +21,18 @@ foreach ($allEvals as $eval) {
         $status = 'closed';
     }
 
-    $sub = $subRepo->findByUserAndEvaluation($user['id'], $eval['id']);
+    $subs      = $subRepo->findByUserAndEvaluation($user['id'], $eval['id']);
+    $candidates = $eval['candidates'] ?? [];
+
+    if (count($candidates) > 0) {
+        $submittedCandidateIds = array_map(fn($s) => $s['candidate_id'] ?? null, $subs);
+        $submittedCount        = count(array_filter($submittedCandidateIds));
+        $hasSubmission         = $submittedCount > 0;
+        $submissionSummary     = "$submittedCount/" . count($candidates);
+    } else {
+        $hasSubmission     = count($subs) > 0;
+        $submissionSummary = $hasSubmission ? '1/1' : '0/1';
+    }
 
     $result[] = [
         'id'                  => $eval['id'],
@@ -32,7 +41,9 @@ foreach ($allEvals as $eval) {
         'submission_open_at'  => $eval['submission_open_at'],
         'submission_close_at' => $eval['submission_close_at'],
         'status'              => $status,
-        'has_submission'      => $sub !== null,
+        'candidate_count'     => count($candidates),
+        'has_submission'      => $hasSubmission,
+        'submission_summary'  => $submissionSummary,
     ];
 }
 

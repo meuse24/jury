@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { adminEvals, Category, EvalPayload, ApiError } from '../../api/client'
+import { adminEvals, Category, Candidate, EvalPayload, ApiError } from '../../api/client'
 import Alert from '../../components/Alert'
 import Spinner from '../../components/Spinner'
 
@@ -18,20 +18,24 @@ function inputToTs(s: string): number {
 const emptyCategory = (): Omit<Category, 'id'> & { id?: string } =>
   ({ name: '', description: '', max_score: 10 })
 
+const emptyCandidate = (): Omit<Candidate, 'id'> & { id?: string } =>
+  ({ name: '', description: '' })
+
 export default function AdminEvalFormPage() {
   const { id } = useParams<{ id: string }>()
   const isEdit  = id !== undefined && id !== 'new'
   const nav     = useNavigate()
 
-  const [loading, setLoading] = useState(isEdit)
-  const [error, setError]     = useState('')
-  const [title, setTitle]     = useState('')
-  const [desc, setDesc]       = useState('')
-  const [openAt, setOpenAt]   = useState('')
-  const [closeAt, setCloseAt] = useState('')
-  const [pubAt, setPubAt]     = useState('')
+  const [loading, setLoading]       = useState(isEdit)
+  const [error, setError]           = useState('')
+  const [title, setTitle]           = useState('')
+  const [desc, setDesc]             = useState('')
+  const [openAt, setOpenAt]         = useState('')
+  const [closeAt, setCloseAt]       = useState('')
+  const [pubAt, setPubAt]           = useState('')
   const [categories, setCategories] = useState<(Omit<Category,'id'> & {id?:string})[]>([emptyCategory()])
-  const [submitting, setSub]  = useState(false)
+  const [candidates, setCandidates] = useState<(Omit<Candidate,'id'> & {id?:string})[]>([])
+  const [submitting, setSub]        = useState(false)
 
   useEffect(() => {
     if (!isEdit) return
@@ -43,14 +47,20 @@ export default function AdminEvalFormPage() {
       setCloseAt(tsToInput(ev.submission_close_at))
       setPubAt(tsToInput(ev.results_publish_at))
       setCategories(ev.categories)
+      setCandidates(ev.candidates ?? [])
     }).catch(() => setError('Wertung nicht gefunden.'))
     .finally(() => setLoading(false))
   }, [id])
 
-  const addCategory = () => setCategories(c => [...c, emptyCategory()])
+  const addCategory    = () => setCategories(c => [...c, emptyCategory()])
   const removeCategory = (i: number) => setCategories(c => c.filter((_, j) => j !== i))
   const updateCategory = (i: number, field: string, value: string | number) =>
     setCategories(c => c.map((cat, j) => j === i ? { ...cat, [field]: value } : cat))
+
+  const addCandidate    = () => setCandidates(c => [...c, emptyCandidate()])
+  const removeCandidate = (i: number) => setCandidates(c => c.filter((_, j) => j !== i))
+  const updateCandidate = (i: number, field: string, value: string) =>
+    setCandidates(c => c.map((cand, j) => j === i ? { ...cand, [field]: value } : cand))
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,6 +73,7 @@ export default function AdminEvalFormPage() {
         submission_close_at: inputToTs(closeAt),
         results_publish_at:  inputToTs(pubAt),
         categories: categories.map(c => ({ ...c, max_score: Number(c.max_score) })),
+        candidates: candidates.length > 0 ? candidates : [],
       }
       if (isEdit) {
         await adminEvals.update(id!, payload)
@@ -113,6 +124,39 @@ export default function AdminEvalFormPage() {
           </div>
         </div>
 
+        {/* Candidates section */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <label className="text-sm font-medium">Kandidaten</label>
+              <span className="ml-2 text-xs text-gray-400">(optional – ohne Kandidaten = einfache Wertung)</span>
+            </div>
+            <button type="button" onClick={addCandidate}
+              className="text-xs text-indigo-600 hover:underline">+ Hinzufügen</button>
+          </div>
+          {candidates.length === 0 ? (
+            <p className="text-sm text-gray-400 italic">Keine Kandidaten – die Jury bewertet allgemein.</p>
+          ) : (
+            <div className="space-y-2">
+              {candidates.map((cand, i) => (
+                <div key={i} className="border rounded p-3 space-y-2 bg-blue-50">
+                  <div className="flex gap-2">
+                    <input placeholder="Name des Kandidaten *" value={cand.name}
+                      onChange={e => updateCandidate(i, 'name', e.target.value)}
+                      className="flex-1 border rounded px-3 py-1.5 text-sm" required />
+                    <button type="button" onClick={() => removeCandidate(i)}
+                      className="text-red-500 hover:text-red-700 text-sm px-2">✕</button>
+                  </div>
+                  <input placeholder="Beschreibung (optional)" value={cand.description}
+                    onChange={e => updateCandidate(i, 'description', e.target.value)}
+                    className="w-full border rounded px-3 py-1.5 text-sm" />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Categories section */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-medium">Kategorien *</label>

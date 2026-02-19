@@ -23,10 +23,10 @@ Vollständige Client-Server-Webapp für Jury-Wertungen. Deployed auf Shared Host
 │   ├── src/
 │   │   ├── Auth/         login.php, logout.php, me.php
 │   │   ├── Admin/        CRUD Users, Evaluations, Assignments, Publish, Submissions-Status
-│   │   ├── Jury/         eval list/detail, submission get/put
-│   │   ├── Public/       results.php (publish-gating)
+│   │   ├── Jury/         eval list/detail, submission get/put, candidate_submission get/put
+│   │   ├── Public/       results.php (publish-gating, simple + candidates mode)
 │   │   ├── Middleware/   session.php, rbac.php (requireAuth/requireRole, CSRF)
-│   │   ├── Model/        models.php (make_user, make_evaluation, make_category, make_submission)
+│   │   ├── Model/        models.php (make_user, make_evaluation, make_candidate, make_category, make_submission)
 │   │   └── Repository/   JsonStore.php, repositories.php (UserRepo, EvalRepo, SubmissionRepo)
 │   └── .htaccess         RewriteBase /apps/jury/api/ → index.php
 ├── frontend/             React SPA
@@ -36,16 +36,16 @@ Vollständige Client-Server-Webapp für Jury-Wertungen. Deployed auf Shared Host
 │   │   ├── components/   Layout, ProtectedRoute, Alert, Spinner
 │   │   └── pages/
 │   │       ├── LoginPage.tsx
-│   │       ├── HelpPage.tsx          Ausführliche Hilfe (8 Abschnitte)
-│   │       ├── PublicResultsPage.tsx Öffentliche Ergebnisse (kein Login)
+│   │       ├── HelpPage.tsx          Ausführliche Hilfe (9 Abschnitte, inkl. Kandidaten)
+│   │       ├── PublicResultsPage.tsx Öffentliche Ergebnisse – animierte Enthüllung (simple + candidates)
 │   │       ├── admin/
 │   │       │   ├── AdminUsersPage.tsx
 │   │       │   ├── AdminEvalsPage.tsx
-│   │       │   ├── AdminEvalFormPage.tsx   Erstellen + Bearbeiten
-│   │       │   └── AdminAssignmentsPage.tsx "Jury & Status" (Zuweisung + Einreichstatus)
+│   │       │   ├── AdminEvalFormPage.tsx   Erstellen + Bearbeiten (inkl. Kandidaten-Sektion)
+│   │       │   └── AdminAssignmentsPage.tsx "Jury & Status" (Einreichstatus, kandidatenweise)
 │   │       └── jury/
 │   │           ├── JuryDashboardPage.tsx
-│   │           └── JuryEvalPage.tsx        Bewertungsformular (Slider + Zahl)
+│   │           └── JuryEvalPage.tsx        Bewertungsformular – Kandidaten-Tabs oder einfacher Modus
 │   ├── vite.config.ts    Build + assembleDistPlugin (kopiert api/, data/, .htaccess)
 │   └── .env              VITE_BASE_PATH=/apps/jury  (für Prod-Build)
 ├── data/                 JSON-Datenspeicher (nicht in dist/ committed)
@@ -56,7 +56,7 @@ Vollständige Client-Server-Webapp für Jury-Wertungen. Deployed auf Shared Host
 ├── dist/                 Deployables (gitignored, wird per Build erzeugt)
 ├── scripts/
 │   ├── build.sh          Shell-Build (alternativ zu npm run build)
-│   └── create_dummy_data.php  Erzeugt Dummy-Daten (admin + 3 Jury + 2 Wertungen)
+│   └── create_dummy_data.php  Erzeugt Dummy-Daten (admin + 3 Jury + 3 Wertungen + Demo-Submissions)
 ├── DEPLOYMENT.md         Schritt-für-Schritt FTP-Deployment-Anleitung
 └── plan.txt              Originale Anforderungsspezifikation
 ```
@@ -74,18 +74,22 @@ Vollständige Client-Server-Webapp für Jury-Wertungen. Deployed auf Shared Host
 ### Evaluation
 ```json
 { "id": "uuid", "title": "string", "description": "string",
+  "candidates": [{ "id": "uuid", "name": "string", "description": "string" }],
   "categories": [{ "id": "uuid", "name": "string", "description": "string", "max_score": 10 }],
   "submission_open_at": 0, "submission_close_at": 0, "results_publish_at": 0,
   "results_is_published": false, "results_published_at": null,
   "jury_assignments": ["userId"], "created_at": 0, "updated_at": 0 }
 ```
+`candidates: []` → einfacher Modus. `candidates: [{...}]` → Kandidaten-Modus.
 
 ### Submission
 ```json
 { "id": "uuid", "evaluation_id": "uuid", "user_id": "uuid",
+  "candidate_id": "uuid|null",
   "scores": [{ "category_id": "uuid", "score": 8 }],
   "comment": "string|null", "submitted_at": 0, "updated_at": 0 }
 ```
+`candidate_id: null` → einfacher Modus. `candidate_id: "uuid"` → Kandidaten-Modus (ein Datensatz pro Kandidat pro Jury-Mitglied).
 
 ---
 
@@ -106,14 +110,15 @@ Vollständige Client-Server-Webapp für Jury-Wertungen. Deployed auf Shared Host
 | PUT | `/api/admin/evaluations/:id` | admin | Wertung bearbeiten |
 | DELETE | `/api/admin/evaluations/:id` | admin | Wertung löschen |
 | PUT | `/api/admin/evaluations/:id/assignments` | admin | Jury zuweisen (löscht Submissions entfernter Member) |
-| GET | `/api/admin/evaluations/:id/submissions` | admin | Einreichstatus pro Jury-Member |
+| GET | `/api/admin/evaluations/:id/submissions` | admin | Einreichstatus pro Jury-Member (+ Kandidaten-Detail) |
 | POST | `/api/admin/evaluations/:id/publish-results` | admin | Ergebnisse freigeben |
 | POST | `/api/admin/evaluations/:id/unpublish-results` | admin | Freigabe zurückziehen |
 | GET | `/api/jury/evaluations` | jury | Zugewiesene Wertungen |
-| GET | `/api/jury/evaluations/:id` | jury + assigned | Wertung detail |
-| GET | `/api/jury/evaluations/:id/submission` | jury + assigned | Eigene Einreichung |
-| PUT | `/api/jury/evaluations/:id/submission` | jury + assigned + open | Einreichen/Aktualisieren |
-| GET | `/api/public/evaluations/:id/results` | – | Öffentliche Ergebnisse |
+| GET | `/api/jury/evaluations/:id` | jury + assigned | Wertung detail (inkl. candidates, submissions[]) |
+| PUT | `/api/jury/evaluations/:id/submission` | jury + assigned + open | Einreichen (einfacher Modus) |
+| GET | `/api/jury/evaluations/:id/candidates/:cid/submission` | jury + assigned | Kandidaten-Submission lesen |
+| PUT | `/api/jury/evaluations/:id/candidates/:cid/submission` | jury + assigned + open | Kandidaten-Submission einreichen |
+| GET | `/api/public/evaluations/:id/results` | – | Öffentliche Ergebnisse (mode: simple\|candidates) |
 
 ---
 
@@ -181,7 +186,9 @@ Inhalt von `dist/` nach `/apps/jury/` uploaden. **Versteckte Dateien anzeigen** 
 | 404 vs 403 | Nicht freigegebene Ergebnisse → 404 | Verhindert Info-Leakage |
 | JSON Concurrency | flock() + temp-file rename | Atomic, kein ext. Lock nötig |
 | DATA_DIR | Auto-detect: `../data` (dist) oder `../../data` (dev) | Ein config.php für beide Layouts |
-| Jury-Entfernung | Submission wird mitgelöscht | Konsistenz; Frontend warnt vorher |
+| Jury-Entfernung | Alle Submissions mitgelöscht | Konsistenz; Frontend warnt vorher |
+| Kandidaten | `candidate_id` auf Submission; null = einfach, uuid = Kandidaten | Abwärtskompatibel, Repository-neutral |
+| Ergebnis-Enthüllung | Animierte Phasen: intro → reveal → finale | Spannung bei öffentlicher Bekanntgabe; Kandidaten umgekehrt (letzter zuerst) |
 
 ---
 
@@ -191,15 +198,23 @@ Inhalt von `dist/` nach `/apps/jury/` uploaden. **Versteckte Dateien anzeigen** 
 php scripts/create_dummy_data.php
 ```
 
-| User | Passwort | Rolle |
-|------|----------|-------|
-| admin | admin123 | Admin |
-| jury1 | jury123 | Maria Huber |
-| jury2 | jury123 | Thomas Müller |
-| jury3 | jury123 | Sophie Wagner |
+| User | Passwort | Rolle | Name |
+|------|----------|-------|------|
+| admin | admin123 | Admin | Administrator |
+| jury1 | jury123 | Jury | Maria Huber |
+| jury2 | jury123 | Jury | Thomas Müller |
+| jury3 | jury123 | Jury | Sophie Wagner |
 
-- **Wertung 1** "Musikwettbewerb 2026": offen (alle 3 Jury zugewiesen)
-- **Wertung 2** "Nachwuchspreis 2026": upcoming (jury1 + jury2)
+| Wertung | Modus | Status | Jury |
+|---------|-------|--------|------|
+| Musikwettbewerb 2026 | einfach | offen (1h) | alle 3 |
+| Nachwuchspreis 2026 | einfach | upcoming (morgen) | jury1 + jury2 |
+| Talentwettbewerb 2026 | Kandidaten | offen (7 Tage) | alle 3 |
+
+Demo-Submissions für Wertung 3 (Talentwettbewerb, 3 Kandidaten):
+- **jury2** hat alle 3 Kandidaten bewertet
+- **jury3** hat 2 von 3 Kandidaten bewertet (Anna + Clara)
+- **jury1** noch keine Wertung abgegeben
 
 ---
 

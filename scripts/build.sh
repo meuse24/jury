@@ -34,10 +34,14 @@ cd "$ROOT"
 echo "==> Copying backend…"
 cp -r "$ROOT/backend/api" "$DIST/api"
 
-# 4. Create dist/data/ with .htaccess protection
+# 4. Create dist/data/ with .htaccess protection + copy seed data
 echo "==> Setting up data directory…"
 mkdir -p "$DIST/data"
 cp "$ROOT/data/.htaccess" "$DIST/data/.htaccess"
+# Copy JSON data files if they exist (dummy/seed data)
+for f in "$ROOT/data/"*.json; do
+    [ -f "$f" ] && cp "$f" "$DIST/data/" && echo "    Copied: $(basename $f)"
+done
 
 # 5. Write root .htaccess (SPA + API routing)
 echo "==> Writing root .htaccess…"

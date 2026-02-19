@@ -15,20 +15,25 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <header className="bg-indigo-700 text-white shadow">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="text-xl font-bold tracking-tight">Jury System</Link>
-          {user && (
-            <div className="flex items-center gap-4">
-              <span className="text-sm opacity-75">{user.name} <span className="text-xs bg-indigo-900 px-1.5 py-0.5 rounded">{user.role}</span></span>
-              {user.role === 'admin' && (
-                <>
-                  <Link to="/admin/users"       className="text-sm hover:underline">Benutzer</Link>
-                  <Link to="/admin/evaluations" className="text-sm hover:underline">Wertungen</Link>
-                </>
-              )}
+          <div className="flex items-center gap-4">
+            {user && (
+              <>
+                <span className="text-sm opacity-75">{user.name} <span className="text-xs bg-indigo-900 px-1.5 py-0.5 rounded">{user.role}</span></span>
+                {user.role === 'admin' && (
+                  <>
+                    <Link to="/admin/users"       className="text-sm hover:underline">Benutzer</Link>
+                    <Link to="/admin/evaluations" className="text-sm hover:underline">Wertungen</Link>
+                  </>
+                )}
+              </>
+            )}
+            <Link to="/hilfe" className="text-sm hover:underline opacity-80">Hilfe</Link>
+            {user && (
               <button onClick={handleLogout} className="text-sm bg-indigo-800 hover:bg-indigo-900 px-3 py-1 rounded">
                 Abmelden
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </header>
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6">

@@ -41,6 +41,9 @@ function require_role(string|array $roles): array
  * Check CSRF: for state-changing requests we verify the Origin or Referer
  * header matches the current host. SameSite=Strict cookie already mitigates
  * most CSRF, but this double-check guards edge cases.
+ *
+ * Origins in CORS_ALLOWED_ORIGINS (local dev) are explicitly trusted and
+ * bypass the host-match check — the CORS layer already handles them.
  */
 function check_csrf(): void
 {
@@ -49,9 +52,16 @@ function check_csrf(): void
         return;
     }
 
-    $host = $_SERVER['HTTP_HOST'] ?? '';
-    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+    $origin  = $_SERVER['HTTP_ORIGIN']  ?? '';
     $referer = $_SERVER['HTTP_REFERER'] ?? '';
+
+    // Explicitly trusted dev origins — skip host-match check
+    $allowedOrigins = defined('CORS_ALLOWED_ORIGINS') ? CORS_ALLOWED_ORIGINS : [];
+    if ($origin !== '' && in_array($origin, $allowedOrigins, true)) {
+        return;
+    }
+
+    $host = $_SERVER['HTTP_HOST'] ?? '';
 
     if ($origin !== '') {
         $parsed = parse_url($origin);
