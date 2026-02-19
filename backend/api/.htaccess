@@ -1,0 +1,12 @@
+Options -Indexes
+
+# Rewrite API requests to index.php
+RewriteEngine On
+RewriteBase /jurysystem/api/
+
+# Allow actual files/dirs to pass through
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Route everything to index.php
+RewriteRule ^(.*)$ index.php [QSA,L]
