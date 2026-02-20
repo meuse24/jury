@@ -55,11 +55,8 @@ $method = get_method();
 try {
     dispatch($method, $route);
 } catch (Throwable $e) {
-    json_error('INTERNAL_ERROR', 'An unexpected error occurred.', 500, [
-        'message' => $e->getMessage(),
-        'file'    => basename($e->getFile()),
-        'line'    => $e->getLine(),
-    ]);
+    error_log('[JurySystem] ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+    json_error('INTERNAL_ERROR', 'An unexpected error occurred.', 500);
 }
 
 // ===================================================================

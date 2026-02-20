@@ -6,7 +6,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const nav = useNavigate()
 
   const handleLogout = async () => {
-    await logout()
+    try {
+      await logout()
+    } catch {
+      // API failure doesn't block local logout; navigate regardless
+    }
     nav('/login')
   }
 

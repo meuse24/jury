@@ -31,13 +31,16 @@ export default function AdminAssignmentsPage() {
     setUsers(juryUsers)
     setSelected(new Set(er.evaluation.jury_assignments))
 
-    // Load submission status only if there are assignments
     if (er.evaluation.jury_assignments.length > 0) {
       const sr = await adminEvals.getSubmissions(id!)
       const map: Record<string, JurySubmissionStatus> = {}
       sr.submissions.forEach(s => { map[s.user_id] = s })
       setStatuses(map)
       setHasCandidates(sr.has_candidates)
+    } else {
+      // Reset stale status state when all assignments are removed
+      setStatuses({})
+      setHasCandidates(false)
     }
   }
 

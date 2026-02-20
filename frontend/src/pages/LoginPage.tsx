@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react'
+import { useState, FormEvent, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { ApiError } from '../api/client'
@@ -12,10 +12,13 @@ export default function LoginPage() {
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
 
-  if (user) {
-    nav(user.role === 'admin' ? '/admin/evaluations' : '/jury', { replace: true })
-    return null
-  }
+  useEffect(() => {
+    if (user) {
+      nav(user.role === 'admin' ? '/admin/evaluations' : '/jury', { replace: true })
+    }
+  }, [user, nav])
+
+  if (user) return null
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()

@@ -20,6 +20,9 @@ $hasCandidates = count($candidates) > 0;
 $result = [];
 foreach ($eval['jury_assignments'] as $userId) {
     $user = $userRepo->findById($userId);
+    // User may have been deleted after assignment; report as unknown but don't crash
+    $name     = $user['name']     ?? '(gelöscht)';
+    $username = $user['username'] ?? '(gelöscht)';
     $subs = $subRepo->findByUserAndEvaluation($userId, $id);
 
     if ($hasCandidates) {
@@ -44,8 +47,8 @@ foreach ($eval['jury_assignments'] as $userId) {
         $totalSubmitted = count($subMap);
         $result[] = [
             'user_id'           => $userId,
-            'name'              => $user['name']     ?? '(unbekannt)',
-            'username'          => $user['username'] ?? '(unbekannt)',
+            'name'              => $name,
+            'username'          => $username,
             'has_submission'    => $totalSubmitted > 0,
             'submission_count'  => $totalSubmitted,
             'candidate_count'   => count($candidates),
@@ -57,8 +60,8 @@ foreach ($eval['jury_assignments'] as $userId) {
         $sub = !empty($subs) ? $subs[0] : null;
         $result[] = [
             'user_id'        => $userId,
-            'name'           => $user['name']     ?? '(unbekannt)',
-            'username'       => $user['username'] ?? '(unbekannt)',
+            'name'           => $name,
+            'username'       => $username,
             'has_submission' => $sub !== null,
             'submitted_at'   => $sub['submitted_at'] ?? null,
             'updated_at'     => $sub['updated_at']   ?? null,

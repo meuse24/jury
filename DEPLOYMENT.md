@@ -53,9 +53,9 @@ Bei World4You kannst du die Rechte über den Dateimanager im CPanel setzen.
 
 ---
 
-## 4. Seed-Script ausführen (initialer Admin-User)
+## 4. Admin-Benutzer anlegen
 
-**Option A: SSH**
+**Option A: SSH (empfohlen)**
 ```bash
 cd /path/to/jurysystem
 php api/seed.php
@@ -64,13 +64,17 @@ SEED_ADMIN_USER=myadmin SEED_ADMIN_PASSWORD=sicherespasswort php api/seed.php
 ```
 
 **Option B: Ohne SSH (FTP-only)**
-Erstelle eine temporäre Datei `run_seed.php` im Webroot mit:
-```php
-<?php
-chdir(__DIR__ . '/api');
-require __DIR__ . '/api/seed.php';
+Generiere die Startdaten **lokal** (auf deinem Rechner) und lade nur die JSON-Datei hoch:
+```bash
+# Lokal ausführen:
+php scripts/create_dummy_data.php
+# → schreibt data/users.json mit admin/admin123
 ```
-Rufe sie einmal über den Browser auf, lösche sie danach sofort!
+Lade `data/users.json` per FTP nach `/jurysystem/data/users.json` hoch.
+
+> **Wichtig:** Ändere das Passwort nach dem ersten Login sofort unter *Benutzer → Bearbeiten*.
+> Lade **niemals** ein ausführbares PHP-Script in den öffentlichen Webroot – es könnte von
+> außen aufgerufen werden und Admin-Zugangsdaten überschreiben.
 
 ---
 

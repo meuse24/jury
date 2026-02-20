@@ -13,6 +13,8 @@ function current_user(): ?array
 
 /**
  * Require an authenticated session; send 401 otherwise.
+ * Re-validates the session user against the repository so that deleted
+ * accounts are rejected immediately rather than at session expiry.
  */
 function require_auth(): array
 {
@@ -20,6 +22,14 @@ function require_auth(): array
     if ($user === null) {
         json_error('UNAUTHENTICATED', 'You must be logged in.', 401);
     }
+
+    // Confirm the account still exists in persistent storage.
+    $live = user_repo()->findById($user['id']);
+    if ($live === null) {
+        session_destroy();
+        json_error('UNAUTHENTICATED', 'Account no longer exists. Please log in again.', 401);
+    }
+
     return $user;
 }
 
