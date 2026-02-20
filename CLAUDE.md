@@ -33,7 +33,10 @@ Vollständige Client-Server-Webapp für Jury-Wertungen. Deployed auf Shared Host
 │   ├── src/
 │   │   ├── api/client.ts Typed API-Client (fetch + credentials)
 │   │   ├── hooks/useAuth.tsx AuthProvider + useAuth Hook
-│   │   ├── components/   Layout, ProtectedRoute, Alert, Spinner
+│   │   ├── utils/
+│   │   │   ├── formatting.ts  fmtDate (de-AT Locale)
+│   │   │   └── errors.ts      getErrorMessage (ApiError → string)
+│   │   ├── components/   Layout, ProtectedRoute, Alert, Spinner, EmptyState
 │   │   └── pages/
 │   │       ├── LoginPage.tsx
 │   │       ├── HelpPage.tsx          10 Abschnitte: Workflow + Best Practices (Admin + Jury)
@@ -200,6 +203,7 @@ Inhalt von `dist/` nach `/apps/jury/` uploaden. **Versteckte Dateien anzeigen** 
 | Fehlende Abgaben | Konsequenz auf Durchschnitt erklären + 2 Lösungshinweise | Admin kann informiert entscheiden: Mitglied entfernen oder Frist verlängern |
 | total_jury_count | Immer in Public-Results-Response (simple + candidates) | Frontend zeigt "X von Y Wertungen" wenn Abgaben fehlen |
 | Infografik | WorkflowPage mit workflow.jpg; Drag-Pan + Mausrad-Zoom + Pinch-Zoom | Responsive ohne feste Bildgröße; zoomRef verhindert stale-closure bei Mausrad |
+| DRY-Utilities | `utils/formatting.ts`, `utils/errors.ts`, `EmptyState` Komponente | fmtDate 3×, getErrorMessage 10×, EmptyState 2× → je 1× zentralisiert |
 
 ---
 

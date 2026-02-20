@@ -147,13 +147,17 @@
 │       └── Repository/           JsonStore.php, repositories.php
 │
 ├── frontend/                     React SPA
+│   ├── public/
+│   │   └── workflow.jpg          Infografik-Bild (Vite static asset)
 │   ├── src/
 │   │   ├── api/client.ts         Typed API-Client (fetch + credentials)
 │   │   ├── hooks/useAuth.tsx     AuthProvider + useAuth Hook
-│   ├── public/
-│   │   └── workflow.jpg          Infografik-Bild (Vite static asset)
+│   │   ├── utils/
+│   │   │   ├── formatting.ts     fmtDate – Datumsformatierung (de-AT)
+│   │   │   └── errors.ts         getErrorMessage – ApiError → string
 │   │   ├── components/
 │   │   │   ├── Layout.tsx        Header (Hamburger Mobile), Hilfe-Dropdown, Footer
+│   │   │   ├── EmptyState.tsx    Wiederverwendbarer Leer-Zustand
 │   │   │   ├── ProtectedRoute.tsx
 │   │   │   ├── Alert.tsx
 │   │   │   └── Spinner.tsx
@@ -423,6 +427,7 @@ Demo-Submissions (Talentwettbewerb, Kandidaten: Anna, Ben, Clara):
 | Fehlende Abgaben | Konsequenz erklären + Lösungshinweise (Abwählen / Frist verlängern) | Admin kann informiert entscheiden statt blind freigeben |
 | total_jury_count | In Public-Results-Response immer enthalten (simple + candidates) | Zuschauer sehen Vollständigkeit der Wertungsbasis |
 | Infografik Pan+Zoom | zoomRef + nativer non-passive touchmove Listener | Kein stale-closure beim Mausrad; Pinch zuverlässig auf iOS |
+| DRY-Utilities | `utils/formatting.ts` + `utils/errors.ts` + `EmptyState` | fmtDate, getErrorMessage und Leer-Zustand je einmalig zentralisiert |
 
 ---
 
