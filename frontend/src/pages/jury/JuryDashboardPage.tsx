@@ -22,7 +22,14 @@ function CandidateProgress({ submitted, total }: { submitted: number; total: num
         <span>Kandidaten bewertet</span>
         <span className="font-medium">{submitted} / {total}</span>
       </div>
-      <div className="w-full bg-gray-100 rounded-full h-1.5">
+      <div
+        role="progressbar"
+        aria-valuenow={submitted}
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-label={`${submitted} von ${total} Kandidaten bewertet`}
+        className="w-full bg-gray-100 rounded-full h-1.5"
+      >
         <div
           className={`h-1.5 rounded-full transition-all ${pct === 100 ? 'bg-green-500' : 'bg-indigo-500'}`}
           style={{ width: `${pct}%` }}

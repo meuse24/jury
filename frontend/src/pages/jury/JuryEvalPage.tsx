@@ -245,6 +245,10 @@ export default function JuryEvalPage() {
                 value={scores[cat.id] ?? 0}
                 onChange={e => handleScoreChange(cat.id, parseInt(e.target.value))}
                 disabled={!isOpen}
+                aria-label={`${cat.name}: Punkte (0–${cat.max_score})`}
+                aria-valuenow={scores[cat.id] ?? 0}
+                aria-valuemin={0}
+                aria-valuemax={cat.max_score}
                 className="flex-1 accent-indigo-700 min-w-0"
               />
               <input
@@ -257,6 +261,7 @@ export default function JuryEvalPage() {
                   handleScoreChange(cat.id, v)
                 }}
                 disabled={!isOpen}
+                aria-label={`${cat.name}: Punkteingabe`}
                 className="w-16 border rounded px-2 py-1 text-sm text-center shrink-0"
               />
             </div>

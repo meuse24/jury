@@ -75,6 +75,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             onClick={() => setMenuOpen(o => !o)}
             aria-label={menuOpen ? 'Menü schließen' : 'Menü öffnen'}
             aria-expanded={menuOpen}
+            aria-controls="mobile-nav-menu"
           >
             {menuOpen ? (
               /* ✕ close icon */
@@ -92,7 +93,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
         {/* ── Mobile Dropdown (< sm) ── */}
         {menuOpen && (
-          <div className="sm:hidden border-t border-indigo-600 bg-indigo-800">
+          <div id="mobile-nav-menu" className="sm:hidden border-t border-indigo-600 bg-indigo-800">
             <div className="max-w-5xl mx-auto px-4 py-4 flex flex-col gap-0.5">
 
               {user && (
@@ -159,7 +160,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* ── Footer ───────────────────────────────────────────── */}
       <footer className="text-center text-xs text-gray-400 py-4 border-t border-gray-100 bg-white">
-        Jury System &nbsp;·&nbsp; <a href="/hilfe" className="hover:underline">Hilfe</a>
+        Jury System &nbsp;·&nbsp; <Link to="/hilfe" className="hover:underline">Hilfe</Link>
       </footer>
     </div>
   )

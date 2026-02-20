@@ -291,7 +291,8 @@ php -S localhost:8000 index.php
 cd frontend
 npm install
 npm run dev
-# → http://localhost:5173/jurysystem/
+# → http://localhost:5173/apps/jury/
+# (Pfad richtet sich nach VITE_BASE_PATH in frontend/.env – Standard: /apps/jury)
 ```
 
 Der Vite Dev-Server proxied API-Anfragen automatisch an `localhost:8000`.
