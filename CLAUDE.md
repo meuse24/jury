@@ -36,13 +36,13 @@ Vollständige Client-Server-Webapp für Jury-Wertungen. Deployed auf Shared Host
 │   │   ├── components/   Layout, ProtectedRoute, Alert, Spinner
 │   │   └── pages/
 │   │       ├── LoginPage.tsx
-│   │       ├── HelpPage.tsx          Ausführliche Hilfe (9 Abschnitte, inkl. Kandidaten)
+│   │       ├── HelpPage.tsx          10 Abschnitte: Workflow + Best Practices (Admin + Jury)
 │   │       ├── PublicResultsPage.tsx Öffentliche Ergebnisse – animierte Enthüllung (simple + candidates)
 │   │       ├── admin/
 │   │       │   ├── AdminUsersPage.tsx
-│   │       │   ├── AdminEvalsPage.tsx
-│   │       │   ├── AdminEvalFormPage.tsx   Erstellen + Bearbeiten (inkl. Kandidaten-Sektion)
-│   │       │   └── AdminAssignmentsPage.tsx "Jury & Status" (Einreichstatus, kandidatenweise)
+│   │       │   ├── AdminEvalsPage.tsx       Freigabe-Button entfernt → nur in AdminAssignmentsPage
+│   │       │   ├── AdminEvalFormPage.tsx    Erstellen + Bearbeiten; Auto-Redirect zu Assignments
+│   │       │   └── AdminAssignmentsPage.tsx Jury & Status + Freigabe (zentral, mit Ausstehend-Warnung)
 │   │       └── jury/
 │   │           ├── JuryDashboardPage.tsx
 │   │           └── JuryEvalPage.tsx        Bewertungsformular – Kandidaten-Tabs oder einfacher Modus
@@ -183,12 +183,14 @@ Inhalt von `dist/` nach `/apps/jury/` uploaden. **Versteckte Dateien anzeigen** 
 | CSRF | Origin/Referer-Check + SameSite | Kein separates Token nötig für SPA |
 | Dev-CORS | `CORS_ALLOWED_ORIGINS` Whitelist | localhost:5173 wird beim CSRF-Check übersprungen |
 | Publish | Admin-Toggle + Zeitschranke (beide müssen erfüllt sein) | Admin kann vorab "armen" |
+| Freigabe-UI | Nur in AdminAssignmentsPage (nicht in der Liste) | Status immer sichtbar vor Freigabe; verhindert Versehen |
 | 404 vs 403 | Nicht freigegebene Ergebnisse → 404 | Verhindert Info-Leakage |
 | JSON Concurrency | flock() + temp-file rename | Atomic, kein ext. Lock nötig |
 | DATA_DIR | Auto-detect: `../data` (dist) oder `../../data` (dev) | Ein config.php für beide Layouts |
 | Jury-Entfernung | Alle Submissions mitgelöscht | Konsistenz; Frontend warnt vorher |
 | Kandidaten | `candidate_id` auf Submission; null = einfach, uuid = Kandidaten | Abwärtskompatibel, Repository-neutral |
 | Ergebnis-Enthüllung | Animierte Phasen: intro → reveal → finale | Spannung bei öffentlicher Bekanntgabe; Kandidaten umgekehrt (letzter zuerst) |
+| Ausstehend-Warnungen | Orange Warnblöcke mit namentlichen Links | Jury verpasst keine offenen Bewertungen |
 
 ---
 

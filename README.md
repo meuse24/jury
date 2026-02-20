@@ -8,17 +8,17 @@
 ## Inhaltsverzeichnis
 
 - [Features](#features)
-- [Screenshots / Workflow](#screenshots--workflow)
+- [Workflow](#workflow)
 - [Technologie-Stack](#technologie-stack)
 - [Projektstruktur](#projektstruktur)
 - [Datenmodell](#datenmodell)
 - [REST API](#rest-api)
+- [Frontend Routes](#frontend-routes)
 - [Lokale Entwicklung](#lokale-entwicklung)
 - [Produktions-Build & Deployment](#produktions-build--deployment)
 - [Dummy-Daten](#dummy-daten)
 - [Architekturentscheidungen](#architekturentscheidungen)
 - [Bekannte Einschränkungen](#bekannte-einschränkungen)
-- [Lizenz](#lizenz)
 
 ---
 
@@ -26,65 +26,78 @@
 
 ### Admin
 - Benutzer anlegen, bearbeiten, löschen (Rollen: Admin / Jury)
-- Wertungen erstellen und verwalten mit:
-  - Einreichungszeitraum (open / upcoming / closed)
-  - Beliebige Bewertungskategorien mit Max-Punktzahl
-  - **Einfacher Modus** – Jury bewertet allgemein
-  - **Kandidaten-Modus** – Jury bewertet jeden Kandidaten separat
-- Jury-Mitglieder zuweisen mit Submission-Status auf einen Blick
-- Ergebnisse per Klick freigeben oder zurückziehen
-- Workflow-Führung: Nach Wertungserstellung direkt zur Jury-Zuweisung
+- Wertungen erstellen mit konfigurierbar Zeitfenster, Kategorien (Max-Punkte), Modi:
+  - **Einfacher Modus** – eine Gesamtbewertung pro Jury-Mitglied
+  - **Kandidaten-Modus** – Jury bewertet jeden Kandidaten einzeln, automatisches Ranking
+- Jury-Mitglieder zuweisen; Live-Einreichstatus pro Mitglied und Kandidat
+- Freigabe-Workflow zentral auf der Jury-&-Status-Seite:
+  - Alle abgegeben → grüner CTA
+  - Noch ausstehend → Warnliste mit Namen + optionales „Trotzdem freigeben"
+  - Bereits freigegeben → Link zur Ergebnisseite + Freigabe zurückziehen
+- Workflow-Führung: Auto-Redirect nach Wertungserstellung direkt zur Jury-Zuweisung
 
 ### Jury-Mitglied
-- Übersicht aller zugewiesenen Wertungen mit Status und Fortschritt
-- Kandidaten-Tabs mit Checkbox-Anzeige (welche Kandidaten bereits bewertet)
-- Fortschrittsbalken für Kandidaten-Modus
-- Slider + Zahlenfeld für jede Kategorie
-- Kommentarfeld (optional)
-- Workflow: Nach Speichern direkt zum nächsten Kandidaten
+- Prominente orange Warnung auf dem Dashboard wenn Bewertungen fehlen (klickbare Links)
+- Fortschrittsbalken für Kandidaten-Modus (X/Y bewertet)
+- Kandidaten-Tabs mit ○/✓ je Kandidat
+- Nach Speichern: „Weiter: Kandidat X →" Button in der Erfolgsmeldung
+- Slider + Zahlenfeld synchronisiert, optionales Kommentarfeld
+- Lesemodus nach Ablauf des Einreichfensters
 
 ### Öffentliche Ergebnisse
-- Animierte Enthüllung der Ergebnisse (Intro → Kategorie für Kategorie → Finale)
+- Animierte Enthüllung (Intro → Kategorie-für-Kategorie → Finale)
 - Einfacher Modus: Gesamtpunktzahl mit Kategorie-Breakdown
-- Kandidaten-Modus: Ranking mit animierter Platzierungsauflösung (letzter zuerst)
-- Ergebnisseite erst zugänglich wenn Admin freigibt
+- Kandidaten-Modus: Rang-Enthüllung (letzter Platz → Sieger)
+- Seite nur erreichbar wenn Admin freigibt **und** Zeitpunkt erreicht
 
 ---
 
-## Screenshots / Workflow
+## Workflow
+
+### Admin – Best Practice
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  ⚖ Jury System      Benutzer  Wertungen  Hilfe  [Abmelden]         │  ← Admin Desktop
-└─────────────────────────────────────────────────────────────────────┘
+ 1. Benutzer anlegen
+      → Alle Jury-Mitglieder (Rolle: Jury) erstellen, bevor die Wertung startet.
 
-┌─────────────────────────────────────────────────────────────────────┐
-│  ⚖ Jury System                                          [☰]         │  ← Mobile (Hamburger)
-└─────────────────────────────────────────────────────────────────────┘
+ 2. Wertung erstellen
+      → Titel · Zeitfenster · Kategorien · ggf. Kandidaten
+      → Button: "Erstellen & Jury zuweisen"
+
+ 3. Jury zuweisen  [Auto-Redirect nach Schritt 2]
+      → Checkboxen setzen → "Zuweisung speichern"
+      → Ab jetzt sehen die Mitglieder die Wertung.
+
+ 4. Bewertungsphase beobachten
+      → Jury & Status / Freigabe zeigt live:
+          ✓ Abgegeben  |  ○ Ausstehend  |  X/Y Kandidaten
+
+ 5. Ergebnisse freigeben  [nur auf Jury-&-Status-Seite]
+      Alle abgegeben  →  grüner Button "✓ Ergebnisse jetzt freigeben"
+      Noch offen      →  Warnliste + "Trotzdem freigeben ⚠"
+      Freigegeben     →  "Freigabe zurückziehen" + öffentlicher Link
 ```
 
-### Admin-Workflow (geführt)
+> **Checkliste vor Freigabe:** Alle Mitglieder grün ✓ · Einreichfenster abgelaufen ·
+> Ergebnisse-ab-Zeitpunkt erreicht · Ergebnisse stichprobenartig geprüft
+
+### Jury – Best Practice
 
 ```
- 1. Benutzer anlegen          →  Jury-Mitglieder erstellen
-        ↓
- 2. Wertung erstellen         →  Titel, Kategorien, Zeitraum, Kandidaten
-        ↓  (Auto-Redirect)
- 3. Jury zuweisen             →  Checkboxen + Einreichstatus live
-        ↓  (alle abgegeben)
- 4. Ergebnisse freigeben      →  Öffentliche URL teilen
-```
+ 1. Anmelden
+      → Oranger Warnblock zeigt sofort: welche Wertungen noch fehlen
 
-### Jury-Workflow (geführt)
+ 2. Wertung öffnen
+      → Button orange = Handlungsbedarf · grau = bereits abgegeben
 
-```
- 1. Dashboard                 →  Zugewiesene Wertungen + Status
-        ↓  (Klick auf "Jetzt bewerten")
- 2. Kandidaten-Tabs           →  Tab wählen, Slider/Eingabe, Kommentar
-        ↓  (Speichern)
- 3. Bestätigung + Weiter      →  "Weiter: Kandidat X →" Button
-        ↓  (alle bewertet)
- 4. "Alle Kandidaten bewertet" ✓
+ 3. Punkte vergeben
+      Einfacher Modus:   Slider/Zahl je Kategorie → "Wertung abgeben"
+      Kandidaten-Modus:  Tab wählen → Punkte → "Wertung abgeben"
+                         → "Weiter: Kandidat X →" erscheint in Meldung
+
+ 4. Vollständigkeit prüfen
+      → Dashboard: grüner Haken = fertig · roter Hinweis = Frist abgelaufen
+      → Änderungen sind jederzeit möglich, solange Fenster offen
 ```
 
 ---
@@ -95,8 +108,8 @@
 |---------|------------|
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS v3, React Router v6 |
 | Backend | PHP 8.3, kein Framework, REST API |
-| Storage | JSON-Dateien, atomares `flock()` + rename (Repository-Pattern) |
-| Auth | PHP Sessions, SameSite=Strict, HttpOnly, CSRF via Origin/Referer |
+| Storage | JSON-Dateien, atomares `flock()` + rename (Repository-Pattern, MySQL-ready) |
+| Auth | PHP Sessions, SameSite=Strict, HttpOnly, CSRF via Origin/Referer-Check |
 | Hosting | Shared Hosting (World4You), FTP-Deployment, kein SSH |
 
 ---
@@ -105,51 +118,55 @@
 
 ```
 /
-├── backend/api/              PHP REST API
-│   ├── index.php             Front-Controller / Router
-│   ├── config.php            BASE_PATH, DATA_DIR, Session, bcrypt
-│   ├── seed.php              CLI-Seed für initialen Admin-User
+├── backend/api/                  PHP REST API
+│   ├── index.php                 Front-Controller / Router
+│   ├── config.php                BASE_PATH, DATA_DIR (auto-detect), Session, bcrypt
+│   ├── seed.php                  CLI-Seed für initialen Admin-User
 │   └── src/
-│       ├── Auth/             login.php, logout.php, me.php
-│       ├── Admin/            CRUD Users, Evaluations, Assignments, Publish
-│       ├── Jury/             eval list/detail, submission get/put, candidates
-│       ├── Public/           results.php (publish-gating, simple + candidates)
-│       ├── Middleware/       session.php, rbac.php (requireAuth/requireRole, CSRF)
-│       ├── Model/            models.php (make_user, make_evaluation, …)
-│       └── Repository/       JsonStore.php, repositories.php
+│       ├── Auth/                 login.php, logout.php, me.php
+│       ├── Admin/                CRUD Users, Evaluations, Assignments, Publish
+│       ├── Jury/                 eval list/detail, submission get/put, candidates
+│       ├── Public/               results.php (publish-gating, simple + candidates)
+│       ├── Middleware/           session.php, rbac.php (requireAuth/requireRole, CSRF)
+│       ├── Model/                models.php (make_user, make_evaluation, …)
+│       └── Repository/           JsonStore.php, repositories.php
 │
-├── frontend/                 React SPA
+├── frontend/                     React SPA
 │   ├── src/
-│   │   ├── api/client.ts     Typed API-Client (fetch + credentials)
-│   │   ├── hooks/useAuth.tsx AuthProvider + useAuth Hook
-│   │   ├── components/       Layout (Hamburger-Menü), ProtectedRoute, Alert, Spinner
+│   │   ├── api/client.ts         Typed API-Client (fetch + credentials)
+│   │   ├── hooks/useAuth.tsx     AuthProvider + useAuth Hook
+│   │   ├── components/
+│   │   │   ├── Layout.tsx        Header (Hamburger Mobile), Footer, sticky Nav
+│   │   │   ├── ProtectedRoute.tsx
+│   │   │   ├── Alert.tsx
+│   │   │   └── Spinner.tsx
 │   │   └── pages/
 │   │       ├── LoginPage.tsx
-│   │       ├── HelpPage.tsx              Ausführliche Hilfe (9 Abschnitte)
-│   │       ├── PublicResultsPage.tsx     Animierte Ergebnisseite
+│   │       ├── HelpPage.tsx      10 Abschnitte: Workflow + Best Practices
+│   │       ├── PublicResultsPage.tsx  Animierte Ergebnisseite
 │   │       ├── admin/
-│   │       │   ├── AdminUsersPage.tsx    Benutzerverwaltung (responsive Tabelle)
-│   │       │   ├── AdminEvalsPage.tsx    Wertungsübersicht + Workflow-CTAs
-│   │       │   ├── AdminEvalFormPage.tsx Erstellen / Bearbeiten (auto-redirect zu Jury)
-│   │       │   └── AdminAssignmentsPage.tsx  Jury zuweisen + Status
+│   │       │   ├── AdminUsersPage.tsx       Benutzerverwaltung
+│   │       │   ├── AdminEvalsPage.tsx        Wertungsübersicht + Workflow-CTAs
+│   │       │   ├── AdminEvalFormPage.tsx     Erstellen/Bearbeiten
+│   │       │   └── AdminAssignmentsPage.tsx  Jury zuweisen + Status + Freigabe
 │   │       └── jury/
-│   │           ├── JuryDashboardPage.tsx Übersicht + Fortschrittsbalken
-│   │           └── JuryEvalPage.tsx      Bewertungsformular + "Weiter"-Führung
-│   ├── vite.config.ts        Build + assembleDistPlugin
-│   └── .env                  VITE_BASE_PATH=/apps/jury
+│   │           ├── JuryDashboardPage.tsx    Übersicht + Warnungen + Fortschritt
+│   │           └── JuryEvalPage.tsx         Bewertungsformular + Weiter-Führung
+│   ├── vite.config.ts            Build + assembleDistPlugin
+│   └── .env                      VITE_BASE_PATH=/apps/jury
 │
-├── data/                     JSON-Datenspeicher (nicht in dist/ committed)
-│   ├── .htaccess             Deny all HTTP
+├── data/                         JSON-Datenspeicher (nicht in dist/ committed)
+│   ├── .htaccess                 Deny all HTTP
 │   ├── users.json
 │   ├── evaluations.json
 │   └── submissions.json
 │
-├── dist/                     Deployables (gitignored)
+├── dist/                         Deployables (gitignored, per Build erzeugt)
 ├── scripts/
-│   ├── build.sh              Shell-Build (Unix/macOS)
-│   └── create_dummy_data.php Erzeugt Test-Daten
-├── CLAUDE.md                 Vollständige Projektdokumentation (für KI-Assistenten)
-└── DEPLOYMENT.md             Schritt-für-Schritt FTP-Deployment-Anleitung
+│   ├── build.sh                  Shell-Build (Unix/macOS)
+│   └── create_dummy_data.php     Erzeugt Test-Daten (4 User, 3 Wertungen)
+├── CLAUDE.md                     Projektdokumentation für KI-Assistenten
+└── DEPLOYMENT.md                 Schritt-für-Schritt FTP-Deployment-Anleitung
 ```
 
 ---
@@ -175,21 +192,21 @@
   "id": "uuid",
   "title": "string",
   "description": "string",
-  "candidates": [{ "id": "uuid", "name": "string", "description": "string" }],
+  "candidates":  [{ "id": "uuid", "name": "string", "description": "string" }],
   "categories":  [{ "id": "uuid", "name": "string", "description": "string", "max_score": 10 }],
-  "submission_open_at":    1700000000,
-  "submission_close_at":   1700086400,
-  "results_publish_at":    1700090000,
-  "results_is_published":  false,
-  "results_published_at":  null,
-  "jury_assignments":      ["userId"],
+  "submission_open_at":   1700000000,
+  "submission_close_at":  1700086400,
+  "results_publish_at":   1700090000,
+  "results_is_published": false,
+  "results_published_at": null,
+  "jury_assignments":     ["userId"],
   "created_at": 0,
   "updated_at": 0
 }
 ```
 
 > `candidates: []` → einfacher Modus
-> `candidates: [{...}]` → Kandidaten-Modus
+> `candidates: [{…}]` → Kandidaten-Modus
 
 ### Submission
 ```json
@@ -236,7 +253,7 @@
 | PUT    | `/api/admin/evaluations/:id` | admin | Wertung bearbeiten |
 | DELETE | `/api/admin/evaluations/:id` | admin | Wertung löschen |
 | PUT    | `/api/admin/evaluations/:id/assignments` | admin | Jury zuweisen (löscht Submissions entfernter Member) |
-| GET    | `/api/admin/evaluations/:id/submissions` | admin | Einreichstatus (+ Kandidaten-Detail) |
+| GET    | `/api/admin/evaluations/:id/submissions` | admin | Einreichstatus pro Mitglied + Kandidaten-Detail |
 | POST   | `/api/admin/evaluations/:id/publish-results` | admin | Ergebnisse freigeben |
 | POST   | `/api/admin/evaluations/:id/unpublish-results` | admin | Freigabe zurückziehen |
 
@@ -262,14 +279,14 @@
 |-------|--------|-------|
 | `/` | – | Redirect je nach Rolle |
 | `/login` | – | Anmeldeseite |
-| `/hilfe` | – | Hilfe & Dokumentation |
+| `/hilfe` | – | Hilfe & Dokumentation (10 Abschnitte) |
 | `/results/:id` | – | Öffentliche Ergebnisse (animiert) |
 | `/admin/users` | admin | Benutzerverwaltung |
 | `/admin/evaluations` | admin | Wertungsübersicht |
 | `/admin/evaluations/new` | admin | Neue Wertung |
 | `/admin/evaluations/:id/edit` | admin | Wertung bearbeiten |
-| `/admin/evaluations/:id/assignments` | admin | Jury & Status |
-| `/jury` | jury | Meine Wertungen (Dashboard) |
+| `/admin/evaluations/:id/assignments` | admin | Jury & Status / Freigabe |
+| `/jury` | jury | Meine Wertungen (Dashboard + Warnungen) |
 | `/jury/evaluations/:id` | jury | Bewertungsformular |
 
 ---
@@ -292,16 +309,16 @@ cd frontend
 npm install
 npm run dev
 # → http://localhost:5173/apps/jury/
-# (Pfad richtet sich nach VITE_BASE_PATH in frontend/.env – Standard: /apps/jury)
+# (Pfad aus VITE_BASE_PATH in frontend/.env)
 ```
 
 Der Vite Dev-Server proxied API-Anfragen automatisch an `localhost:8000`.
 
-### Ersten Admin-User anlegen
+### Ersten Admin anlegen
 ```bash
 cd backend/api
 php seed.php
-# Legt admin / admin123 an
+# Legt admin / admin123 an — Passwort sofort ändern!
 ```
 
 ---
@@ -316,29 +333,28 @@ npm run build
 ```
 
 Das Vite-Plugin `assembleDistPlugin` übernimmt automatisch:
-- Korrektes `.htaccess` mit `RewriteBase /apps/jury/`
+- `.htaccess` mit korrektem `RewriteBase /apps/jury/`
 - `backend/api/` → `dist/api/` kopieren + `BASE_PATH` patchen
 - `data/*.json` → `dist/data/` kopieren
 
 ### Basispfad konfigurieren
 `frontend/.env`:
 ```
-VITE_BASE_PATH=/apps/jury      # Produktion
-VITE_BASE_PATH=/jurysystem     # Lokale Entwicklung
+VITE_BASE_PATH=/apps/jury      # Produktion (Standard)
+VITE_BASE_PATH=/jurysystem     # Alternativ für lokale Entwicklung
 ```
 
 ### FTP Upload
 Inhalt von `dist/` nach `/apps/jury/` uploaden.
 
-> **Wichtig:** In FileZilla unter *Server → Versteckte Dateien anzeigen erzwingen* aktivieren, damit `.htaccess`-Dateien sichtbar sind.
+> **Wichtig:** In FileZilla unter *Server → Versteckte Dateien anzeigen erzwingen* aktivieren,
+> damit `.htaccess`-Dateien sichtbar und übertragbar sind.
 
-Detaillierte Schritt-für-Schritt-Anleitung: siehe [DEPLOYMENT.md](DEPLOYMENT.md)
+Detaillierte Anleitung: [DEPLOYMENT.md](DEPLOYMENT.md)
 
 ---
 
 ## Dummy-Daten
-
-Testdaten für die lokale Entwicklung:
 
 ```bash
 php scripts/create_dummy_data.php
@@ -357,14 +373,14 @@ php scripts/create_dummy_data.php
 
 | Titel | Modus | Status | Jury |
 |---|---|---|---|
-| Musikwettbewerb 2026 | Einfach | Offen (1 Stunde) | alle 3 |
-| Nachwuchspreis 2026 | Einfach | Bald verfügbar (morgen) | jury1 + jury2 |
+| Musikwettbewerb 2026 | Einfach | Offen (1 h) | alle 3 |
+| Nachwuchspreis 2026 | Einfach | Bald offen (morgen) | jury1 + jury2 |
 | Talentwettbewerb 2026 | Kandidaten (3) | Offen (7 Tage) | alle 3 |
 
-Demo-Submissions für den Talentwettbewerb (3 Kandidaten):
-- **jury2** – alle 3 Kandidaten bewertet
-- **jury3** – 2 von 3 bewertet (Anna + Clara)
-- **jury1** – noch keine Wertung
+Demo-Submissions (Talentwettbewerb, Kandidaten: Anna, Ben, Clara):
+- **jury2** – alle 3 bewertet
+- **jury3** – 2/3 (Anna + Clara)
+- **jury1** – noch keine Wertung → zeigt orangen Warnblock
 
 ---
 
@@ -375,28 +391,23 @@ Demo-Submissions für den Talentwettbewerb (3 Kandidaten):
 | Auth | PHP Sessions, SameSite=Strict, HttpOnly | Einfach, sicher, kein Token-Handling nötig |
 | CSRF | Origin/Referer-Check + SameSite | Kein separates CSRF-Token nötig für SPA |
 | Dev-CORS | `CORS_ALLOWED_ORIGINS` Whitelist | `localhost:5173` überspringt CSRF-Check |
-| Publish | Admin-Toggle + Zeitschranke (beide müssen erfüllt sein) | Admin kann Freigabe vorab "armen" |
+| Publish | Admin-Toggle + Zeitschranke (beide müssen erfüllt sein) | Admin kann Freigabe vorab aktivieren |
+| Freigabe-UI | Nur auf Jury-&-Status-Seite | Status vor Freigabe immer sichtbar; verhindert versehentliche Freigabe |
 | 404 vs 403 | Nicht freigegebene Ergebnisse → 404 | Verhindert Information Leakage |
 | JSON Concurrency | `flock()` + temp-file rename | Atomares Schreiben ohne externe Lock-Dienste |
 | DATA_DIR | Auto-detect: `../data` (dist) oder `../../data` (dev) | Ein `config.php` für beide Layouts |
-| Jury-Entfernung | Alle Submissions mitgelöscht | Konsistenz; Frontend warnt vorher |
+| Jury-Entfernung | Alle Submissions mitgelöscht | Konsistenz; Frontend warnt mit Bestätigung |
 | Kandidaten | `candidate_id` auf Submission; null = einfach, uuid = Kandidaten | Abwärtskompatibel, Repository-neutral |
 | Ergebnis-Enthüllung | Animierte Phasen: intro → reveal → finale | Spannung bei öffentlicher Bekanntgabe |
-| Responsivität | Mobile-first, Hamburger-Menü (< 640 px), overflow-x-auto für Tabellen | Nutzbar auf Smartphones und Tablets |
-| Workflow-Führung | Auto-Redirect nach Wertungserstellung → Jury-Zuweisung | Verhindert vergessene Konfigurationsschritte |
+| Responsivität | Mobile-first, Hamburger < 640 px, overflow-x-auto für Tabellen | Nutzbar auf Smartphones, Tablets, Desktop |
+| Workflow-Führung | CTAs, Warnungen, Auto-Redirect | Fehlbedienung und vergessene Schritte minimieren |
 
 ---
 
 ## Bekannte Einschränkungen
 
-- Keine MySQL-Implementierung (Repository-Pattern vorbereitet, JSON reicht für den aktuellen Umfang)
+- Keine MySQL-Implementierung (Repository-Pattern vorbereitet, JSON reicht für aktuellen Umfang)
 - Kein E-Mail-Versand (Passwort-Reset nur durch Admin möglich)
-- Keine Paginierung (bei sehr vielen Wertungen/Usern nachrüsten)
-- `scripts/build.sh` nur auf Unix/macOS – Windows: `cd frontend && npm run build`
-
----
-
-## Lizenz
-
-Dieses Projekt ist für den internen Gebrauch entwickelt.
-Bei Fragen oder Interesse an der Nutzung: [meuse24.info](https://meuse24.info)
+- Keine Paginierung (bei sehr vielen Einträgen nachrüsten)
+- `scripts/build.sh` nur Unix/macOS — Windows: `cd frontend && npm run build`
+- Keine automatisierten Tests (Infrastruktur-Aufwand; manuelle Tests mit Dummy-Daten)
