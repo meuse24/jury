@@ -53,14 +53,18 @@ export default function JuryDashboardPage() {
 
   if (loading) return <Spinner />
 
-  const openEvals   = evals.filter(e => e.status === 'open')
-  const allDone     = openEvals.length > 0 && openEvals.every(e => {
+  const openEvals = evals.filter(e => e.status === 'open')
+
+  // Offene Wertungen mit noch fehlenden Bewertungen
+  const pendingEvals = openEvals.filter(e => {
     if (e.candidate_count > 0) {
       const [done, total] = (e.submission_summary ?? '0/0').split('/').map(Number)
-      return done === total && total > 0
+      return done < total || total === 0
     }
-    return e.has_submission
+    return !e.has_submission
   })
+
+  const allDone = openEvals.length > 0 && pendingEvals.length === 0
 
   return (
     <div className="space-y-6">
@@ -76,9 +80,42 @@ export default function JuryDashboardPage() {
         </div>
       )}
 
+      {/* Prominente Warnung wenn noch Bewertungen ausstehen */}
+      {pendingEvals.length > 0 && (
+        <div className="bg-orange-50 border-2 border-orange-300 rounded-xl p-4 flex gap-3">
+          <span className="text-2xl shrink-0">⚠️</span>
+          <div className="space-y-1">
+            <p className="font-semibold text-orange-900">
+              {pendingEvals.length === 1
+                ? 'Du hast noch eine offene Bewertung!'
+                : `Du hast noch ${pendingEvals.length} offene Bewertungen!`}
+            </p>
+            <ul className="text-sm text-orange-800 space-y-0.5">
+              {pendingEvals.map(e => {
+                const hasCands = e.candidate_count > 0
+                const [done, total] = hasCands
+                  ? (e.submission_summary ?? '0/0').split('/').map(Number)
+                  : [0, 0]
+                return (
+                  <li key={e.id} className="flex items-center gap-2">
+                    <span className="text-orange-400">›</span>
+                    <Link to={`/jury/evaluations/${e.id}`} className="hover:underline font-medium">
+                      {e.title}
+                    </Link>
+                    {hasCands && (
+                      <span className="text-orange-600 text-xs">({done}/{total} Kandidaten)</span>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        </div>
+      )}
+
       {allDone && (
         <Alert type="success">
-          Du hast alle offenen Wertungen abgegeben. Gut gemacht!
+          ✓ Du hast alle offenen Wertungen vollständig abgegeben. Gut gemacht!
         </Alert>
       )}
 
@@ -92,12 +129,14 @@ export default function JuryDashboardPage() {
           const isFullyDone = hasCands
             ? submittedCands === totalCands && totalCands > 0
             : ev.has_submission
+          const isPending = ev.status === 'open' && !isFullyDone
 
           return (
             <div
               key={ev.id}
-              className={`bg-white shadow rounded-lg p-5 transition-all
-                ${ev.status === 'open' && !isFullyDone ? 'border-l-4 border-indigo-500' : ''}`}
+              className={`bg-white shadow rounded-lg p-5 transition-all ${
+                isPending ? 'border-l-4 border-orange-400' : ''
+              }`}
             >
               <div className="flex items-start justify-between gap-4">
                 {/* Left: Info */}
@@ -107,9 +146,14 @@ export default function JuryDashboardPage() {
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${st.cls}`}>
                       {st.label}
                     </span>
-                    {isFullyDone && (
+                    {isFullyDone && ev.status === 'open' && (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium shrink-0">
-                        ✓ Abgegeben
+                        ✓ Vollständig abgegeben
+                      </span>
+                    )}
+                    {isPending && !hasCands && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-semibold shrink-0">
+                        ! Noch nicht abgegeben
                       </span>
                     )}
                   </div>
@@ -122,12 +166,24 @@ export default function JuryDashboardPage() {
                     {fmtDate(ev.submission_open_at)} – {fmtDate(ev.submission_close_at)}
                   </p>
 
-                  {/* Kandidaten-Fortschrittsbalken */}
+                  {/* Kandidaten-Fortschritt */}
                   {hasCands && ev.status === 'open' && (
                     <CandidateProgress submitted={submittedCands} total={totalCands} />
                   )}
                   {hasCands && ev.status !== 'open' && (
                     <p className="text-xs text-gray-400 mt-1">{ev.submission_summary} Kandidaten bewertet</p>
+                  )}
+
+                  {/* Hinweis: Einreichfenster geschlossen ohne Abgabe */}
+                  {ev.status === 'closed' && !ev.has_submission && ev.candidate_count === 0 && (
+                    <p className="text-xs text-red-500 mt-1 font-medium">
+                      ✗ Keine Wertung abgegeben – Frist abgelaufen
+                    </p>
+                  )}
+                  {ev.status === 'closed' && hasCands && submittedCands < totalCands && (
+                    <p className="text-xs text-red-500 mt-1 font-medium">
+                      ✗ Unvollständig abgegeben ({submittedCands}/{totalCands}) – Frist abgelaufen
+                    </p>
                   )}
                 </div>
 
@@ -136,10 +192,11 @@ export default function JuryDashboardPage() {
                   {ev.status === 'open' ? (
                     <Link
                       to={`/jury/evaluations/${ev.id}`}
-                      className={`px-4 py-2 rounded text-sm text-center font-medium transition-colors whitespace-nowrap
-                        ${isFullyDone
+                      className={`px-4 py-2 rounded text-sm text-center font-medium transition-colors whitespace-nowrap ${
+                        isFullyDone
                           ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          : 'bg-indigo-700 hover:bg-indigo-800 text-white'}`}
+                          : 'bg-orange-500 hover:bg-orange-600 text-white'
+                      }`}
                     >
                       {isFullyDone ? 'Bearbeiten' : hasCands ? 'Kandidaten bewerten' : 'Jetzt bewerten'}
                     </Link>

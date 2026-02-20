@@ -50,19 +50,6 @@ export default function AdminEvalsPage() {
     } catch (e) { setError(e instanceof ApiError ? e.message : 'Fehler.') }
   }
 
-  const togglePublish = async (ev: Evaluation) => {
-    try {
-      if (ev.results_is_published) {
-        await adminEvals.unpublish(ev.id)
-        setSuccess('Ergebnisse zurückgezogen.')
-      } else {
-        await adminEvals.publish(ev.id)
-        setSuccess('Ergebnisse freigegeben.')
-      }
-      setError(''); await load()
-    } catch (e) { setError(e instanceof ApiError ? e.message : 'Fehler.') }
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -98,30 +85,27 @@ export default function AdminEvalsPage() {
             const noJury = ev.jury_assignments.length === 0
             return (
               <div key={ev.id} className="bg-white shadow rounded-lg p-5">
-                {/* Card Header */}
-                <div className="flex items-start gap-4">
-                  {/* Left: Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <h2 className="text-lg font-semibold leading-tight">{ev.title}</h2>
-                      <EvalStatusBadge ev={ev} />
-                      {ev.candidates && ev.candidates.length > 0 && (
-                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-indigo-100 text-indigo-700">
-                          {ev.candidates.length} Kandidaten
-                        </span>
-                      )}
-                    </div>
-                    {ev.description && (
-                      <p className="text-sm text-gray-500 mt-1 line-clamp-2">{ev.description}</p>
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <h2 className="text-lg font-semibold leading-tight">{ev.title}</h2>
+                    <EvalStatusBadge ev={ev} />
+                    {ev.candidates && ev.candidates.length > 0 && (
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-indigo-100 text-indigo-700">
+                        {ev.candidates.length} Kandidaten
+                      </span>
                     )}
-                    <div className="text-xs text-gray-400 mt-2 space-y-0.5">
-                      <div>Einreichung: {fmtDate(ev.submission_open_at)} – {fmtDate(ev.submission_close_at)}</div>
-                      <div>Ergebnisse ab: {fmtDate(ev.results_publish_at)}</div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span>Jury: {ev.jury_assignments.length} Mitglied(er)</span>
-                        <span>·</span>
-                        <span>Kategorien: {ev.categories.length}</span>
-                      </div>
+                  </div>
+                  {ev.description && (
+                    <p className="text-sm text-gray-500 mt-1 line-clamp-2">{ev.description}</p>
+                  )}
+                  <div className="text-xs text-gray-400 mt-2 space-y-0.5">
+                    <div>Einreichung: {fmtDate(ev.submission_open_at)} – {fmtDate(ev.submission_close_at)}</div>
+                    <div>Ergebnisse ab: {fmtDate(ev.results_publish_at)}</div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span>Jury: {ev.jury_assignments.length} Mitglied(er)</span>
+                      <span>·</span>
+                      <span>Kategorien: {ev.categories.length}</span>
                     </div>
                   </div>
                 </div>
@@ -139,7 +123,7 @@ export default function AdminEvalsPage() {
                   </div>
                 )}
 
-                {/* Action Bar */}
+                {/* Action Bar – Freigabe wurde in "Jury & Status" verschoben */}
                 <div className="mt-3 pt-3 border-t flex items-center gap-x-4 gap-y-2 flex-wrap text-xs">
                   <Link to={`/admin/evaluations/${ev.id}/edit`}
                     className="text-indigo-600 hover:underline font-medium">
@@ -147,18 +131,14 @@ export default function AdminEvalsPage() {
                   </Link>
                   <Link to={`/admin/evaluations/${ev.id}/assignments`}
                     className="text-indigo-600 hover:underline font-medium">
-                    Jury & Status
+                    Jury &amp; Status / Freigabe
                   </Link>
-                  <button
-                    onClick={() => togglePublish(ev)}
-                    className={`hover:underline font-medium ${ev.results_is_published ? 'text-orange-600' : 'text-green-600'}`}
-                  >
-                    {ev.results_is_published ? 'Freigabe zurückziehen' : 'Ergebnisse freigeben'}
-                  </button>
-                  <Link to={`/results/${ev.id}`} target="_blank" rel="noreferrer"
-                    className="text-gray-500 hover:underline">
-                    Ergebnisse ansehen ↗
-                  </Link>
+                  {ev.results_is_published && (
+                    <Link to={`/results/${ev.id}`} target="_blank" rel="noreferrer"
+                      className="text-gray-500 hover:underline">
+                      Ergebnisse ansehen ↗
+                    </Link>
+                  )}
                   <button
                     onClick={() => del(ev.id, ev.title)}
                     className="text-red-600 hover:underline ml-auto"

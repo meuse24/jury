@@ -168,6 +168,44 @@ export default function JuryEvalPage() {
         </Alert>
       )}
 
+      {/* Warnung: offenes Fenster, aber noch nicht alle Kandidaten bewertet */}
+      {isOpen && hasCandidates && !allSubmitted && (
+        <div className="bg-orange-50 border-2 border-orange-300 rounded-xl px-4 py-3 flex gap-3 items-start">
+          <span className="text-xl shrink-0 mt-0.5">⚠️</span>
+          <div>
+            <p className="text-sm font-semibold text-orange-900">
+              {ev.candidates.length - submittedCount} von {ev.candidates.length} Kandidaten noch nicht bewertet:
+            </p>
+            <ul className="mt-1 space-y-0.5">
+              {ev.candidates
+                .filter(c => !submissions.some(s => s.candidate_id === c.id))
+                .map(c => (
+                  <li key={c.id} className="flex items-center gap-2 text-sm text-orange-800">
+                    <span className="text-orange-400">›</span>
+                    <button
+                      onClick={() => { setActiveCandidateId(c.id); setSuccess(''); setError('') }}
+                      className="hover:underline font-medium"
+                    >
+                      {c.name}
+                    </button>
+                  </li>
+                ))
+              }
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Warnung: offenes Fenster, einfacher Modus, noch keine Abgabe */}
+      {isOpen && !hasCandidates && !currentSub && (
+        <div className="bg-orange-50 border-2 border-orange-300 rounded-xl px-4 py-3 flex gap-3 items-center">
+          <span className="text-xl shrink-0">⚠️</span>
+          <p className="text-sm font-semibold text-orange-900">
+            Du hast für diese Wertung noch keine Bewertung abgegeben.
+          </p>
+        </div>
+      )}
+
       {/* Kandidaten-Tabs */}
       {hasCandidates && (
         <>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { adminEvals, adminUsers, Evaluation, User, JurySubmissionStatus, ApiError } from '../../api/client'
 import Alert from '../../components/Alert'
 import Spinner from '../../components/Spinner'
@@ -21,6 +21,7 @@ export default function AdminAssignmentsPage() {
   const [error, setError]                 = useState('')
   const [success, setSuccess]             = useState('')
   const [saving, setSaving]               = useState(false)
+  const [publishing, setPublishing]       = useState(false)
   const [pendingRemove, setPendingRemove] = useState<Set<string>>(new Set())
 
   const loadAll = async () => {
@@ -92,14 +93,60 @@ export default function AdminAssignmentsPage() {
     }
   }
 
+  const handlePublish = async (force = false) => {
+    if (!force && !allSubmitted) {
+      const missing = pendingMembers.map(uid => statuses[uid]?.name ?? uid).join(', ')
+      const confirmed = window.confirm(
+        `Achtung: Folgende Jury-Mitglieder haben noch keine vollständige Wertung abgegeben:\n\n${missing}\n\nDie Ergebnisse trotzdem jetzt freigeben?`
+      )
+      if (!confirmed) return
+    }
+    setPublishing(true); setError(''); setSuccess('')
+    try {
+      await adminEvals.publish(id!)
+      setSuccess('Ergebnisse wurden freigegeben.')
+      await loadAll()
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Fehler beim Freigeben.')
+    } finally {
+      setPublishing(false)
+    }
+  }
+
+  const handleUnpublish = async () => {
+    setPublishing(true); setError(''); setSuccess('')
+    try {
+      await adminEvals.unpublish(id!)
+      setSuccess('Freigabe wurde zurückgezogen.')
+      await loadAll()
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Fehler.')
+    } finally {
+      setPublishing(false)
+    }
+  }
+
   if (loading) return <Spinner />
 
   const assignedCount  = selected.size
   const submittedCount = hasCandidates
-    ? [...selected].filter(uid => (statuses[uid]?.submission_count ?? 0) > 0).length
+    ? [...selected].filter(uid => {
+        const s = statuses[uid]
+        return s && s.submission_count === s.candidate_count && (s.candidate_count ?? 0) > 0
+      }).length
     : [...selected].filter(uid => statuses[uid]?.has_submission).length
 
-  const allSubmitted = assignedCount > 0 && submittedCount === assignedCount
+  const allSubmitted   = assignedCount > 0 && submittedCount === assignedCount
+  const isPublished    = ev?.results_is_published ?? false
+
+  // Members with missing or incomplete submissions
+  const pendingMembers = [...selected].filter(uid => {
+    if (hasCandidates) {
+      const s = statuses[uid]
+      return !s || (s.submission_count ?? 0) < (s.candidate_count ?? 1)
+    }
+    return !statuses[uid]?.has_submission
+  })
 
   return (
     <div className="max-w-xl w-full space-y-6">
@@ -132,17 +179,11 @@ export default function AdminAssignmentsPage() {
           <div className={`text-3xl font-bold ${allSubmitted ? 'text-green-600' : 'text-amber-600'}`}>
             {submittedCount} / {assignedCount}
           </div>
-          <div className="text-sm text-gray-500 mt-1">Wertung abgegeben</div>
+          <div className="text-sm text-gray-500 mt-1">
+            {hasCandidates ? 'Vollständig bewertet' : 'Wertung abgegeben'}
+          </div>
         </div>
       </div>
-
-      {/* Alle haben abgegeben → Freigabe-Hinweis */}
-      {allSubmitted && (
-        <Alert type="success">
-          Alle Jury-Mitglieder haben ihre Wertung abgegeben.
-          Sie können die Ergebnisse jetzt unter <strong>Wertungen → Ergebnisse freigeben</strong> veröffentlichen.
-        </Alert>
-      )}
 
       {/* Jury-Mitglieder */}
       <div className="bg-white shadow rounded-lg divide-y">
@@ -202,7 +243,7 @@ export default function AdminAssignmentsPage() {
                         {status.candidates.map(cs => (
                           <div key={cs.candidate_id} className="text-xs text-gray-400 flex items-center gap-1 justify-end">
                             <span className="truncate max-w-[140px]">{cs.candidate_name}</span>
-                            <span className={cs.has_submission ? 'text-green-500' : 'text-gray-300'}>
+                            <span className={cs.has_submission ? 'text-green-500' : 'text-amber-400'}>
                               {cs.has_submission ? '✓' : '○'}
                             </span>
                           </div>
@@ -246,6 +287,97 @@ export default function AdminAssignmentsPage() {
       >
         {saving ? 'Speichern…' : 'Zuweisung speichern'}
       </button>
+
+      {/* ── Ergebnisse freigeben ─────────────────────────────── */}
+      {assignedCount > 0 && (
+        <div className={`rounded-xl border-2 p-5 space-y-4 ${
+          isPublished
+            ? 'border-green-300 bg-green-50'
+            : allSubmitted
+              ? 'border-green-200 bg-green-50'
+              : 'border-amber-200 bg-amber-50'
+        }`}>
+          <div className="flex items-center gap-2">
+            <span className="text-lg">{isPublished ? '✅' : allSubmitted ? '🟢' : '⚠️'}</span>
+            <h2 className="font-semibold text-gray-800">Ergebnisse freigeben</h2>
+          </div>
+
+          {isPublished ? (
+            <>
+              <p className="text-sm text-green-800">
+                Die Ergebnisse sind aktuell <strong>öffentlich zugänglich</strong>.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  to={`/results/${id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded font-medium transition-colors"
+                >
+                  Ergebnisse ansehen ↗
+                </Link>
+                <button
+                  onClick={handleUnpublish}
+                  disabled={publishing}
+                  className="text-sm border border-red-300 text-red-600 hover:bg-red-50 px-4 py-2 rounded font-medium disabled:opacity-50 transition-colors"
+                >
+                  {publishing ? 'Bitte warten…' : 'Freigabe zurückziehen'}
+                </button>
+              </div>
+            </>
+          ) : allSubmitted ? (
+            <>
+              <p className="text-sm text-green-800">
+                Alle {assignedCount} Jury-Mitglieder haben ihre Wertung abgegeben.
+                Die Ergebnisse können jetzt veröffentlicht werden.
+              </p>
+              <button
+                onClick={() => handlePublish(true)}
+                disabled={publishing}
+                className="w-full sm:w-auto text-sm bg-green-700 hover:bg-green-800 text-white px-6 py-2.5 rounded font-semibold disabled:opacity-50 transition-colors"
+              >
+                {publishing ? 'Freigeben…' : '✓ Ergebnisse jetzt freigeben'}
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="text-sm text-amber-900 space-y-1">
+                <p className="font-medium">
+                  {pendingMembers.length} von {assignedCount} Jury-Mitglied{pendingMembers.length !== 1 ? 'ern' : ''} {pendingMembers.length !== 1 ? 'fehlen' : 'fehlt'} noch {hasCandidates ? 'Kandidaten-' : ''}Bewertungen:
+                </p>
+                <ul className="list-disc list-inside space-y-0.5 text-amber-800">
+                  {pendingMembers.map(uid => {
+                    const s = statuses[uid]
+                    const name = s?.name ?? uid
+                    if (hasCandidates && s?.candidates) {
+                      const missing = s.candidates.filter(c => !c.has_submission).map(c => c.candidate_name)
+                      return (
+                        <li key={uid}>
+                          {name}
+                          {missing.length > 0 && (
+                            <span className="text-amber-700"> – fehlt: {missing.join(', ')}</span>
+                          )}
+                        </li>
+                      )
+                    }
+                    return <li key={uid}>{name}</li>
+                  })}
+                </ul>
+              </div>
+              <p className="text-xs text-amber-700">
+                Es wird empfohlen abzuwarten, bis alle Bewertungen vollständig sind.
+              </p>
+              <button
+                onClick={() => handlePublish(false)}
+                disabled={publishing}
+                className="text-sm border border-amber-400 text-amber-800 hover:bg-amber-100 px-4 py-2 rounded font-medium disabled:opacity-50 transition-colors"
+              >
+                {publishing ? 'Freigeben…' : 'Trotzdem freigeben ⚠'}
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }
