@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
@@ -6,21 +6,39 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth()
   const nav      = useNavigate()
   const location = useLocation()
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuOpen, setMenuOpen]       = useState(false)
+  const [helpOpen, setHelpOpen]       = useState(false)
+  const helpRef = useRef<HTMLDivElement>(null)
 
   const handleLogout = async () => {
     try { await logout() } catch { /* ignore */ }
     nav('/login')
   }
 
-  const close = () => setMenuOpen(false)
+  const close     = () => setMenuOpen(false)
+  const closeHelp = () => setHelpOpen(false)
 
-  // Active-state helper: exact match for '/', prefix match otherwise
+  // Close help dropdown when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (helpRef.current && !helpRef.current.contains(e.target as Node)) {
+        closeHelp()
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  // Close help dropdown on route change
+  useEffect(() => { closeHelp() }, [location.pathname])
+
   const isActive = (path: string) =>
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
 
   const linkCls = (path: string) =>
     `text-sm transition-colors hover:underline ${isActive(path) ? 'font-bold opacity-100' : 'opacity-80'}`
+
+  const isHilfeActive = isActive('/hilfe')
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -55,7 +73,51 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 )}
               </>
             )}
-            <Link to="/hilfe" className={linkCls('/hilfe')}>Hilfe</Link>
+
+            {/* Hilfe-Dropdown */}
+            <div className="relative" ref={helpRef}>
+              <button
+                onClick={() => setHelpOpen(o => !o)}
+                aria-expanded={helpOpen}
+                aria-haspopup="true"
+                aria-controls="help-dropdown"
+                className={`text-sm transition-colors hover:underline flex items-center gap-1 ${isHilfeActive ? 'font-bold opacity-100' : 'opacity-80'}`}
+              >
+                Hilfe
+                <svg
+                  className={`w-3 h-3 transition-transform ${helpOpen ? 'rotate-180' : ''}`}
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {helpOpen && (
+                <div
+                  id="help-dropdown"
+                  role="menu"
+                  className="absolute right-0 top-full mt-2 w-44 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50"
+                >
+                  <Link
+                    to="/hilfe"
+                    role="menuitem"
+                    className={`block px-4 py-2 text-sm hover:bg-indigo-50 transition-colors
+                      ${location.pathname === '/hilfe' ? 'text-indigo-700 font-semibold' : 'text-gray-700'}`}
+                  >
+                    Hilfe & Dokumentation
+                  </Link>
+                  <Link
+                    to="/hilfe/infografik"
+                    role="menuitem"
+                    className={`block px-4 py-2 text-sm hover:bg-indigo-50 transition-colors
+                      ${isActive('/hilfe/infografik') ? 'text-indigo-700 font-semibold' : 'text-gray-700'}`}
+                  >
+                    Infografik
+                  </Link>
+                </div>
+              )}
+            </div>
+
             {user && (
               <>
                 <span className="opacity-30 select-none">|</span>
@@ -78,12 +140,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             aria-controls="mobile-nav-menu"
           >
             {menuOpen ? (
-              /* ✕ close icon */
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             ) : (
-              /* ☰ hamburger icon */
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
@@ -105,40 +165,35 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
               {user?.role === 'admin' && (
                 <>
-                  <Link
-                    to="/admin/users"
-                    onClick={close}
-                    className={`text-sm px-2 py-2 rounded hover:bg-indigo-700 transition-colors ${isActive('/admin/users') ? 'font-bold bg-indigo-700' : ''}`}
-                  >
+                  <Link to="/admin/users" onClick={close}
+                    className={`text-sm px-2 py-2 rounded hover:bg-indigo-700 transition-colors ${isActive('/admin/users') ? 'font-bold bg-indigo-700' : ''}`}>
                     Benutzer
                   </Link>
-                  <Link
-                    to="/admin/evaluations"
-                    onClick={close}
-                    className={`text-sm px-2 py-2 rounded hover:bg-indigo-700 transition-colors ${isActive('/admin/evaluations') ? 'font-bold bg-indigo-700' : ''}`}
-                  >
+                  <Link to="/admin/evaluations" onClick={close}
+                    className={`text-sm px-2 py-2 rounded hover:bg-indigo-700 transition-colors ${isActive('/admin/evaluations') ? 'font-bold bg-indigo-700' : ''}`}>
                     Wertungen
                   </Link>
                 </>
               )}
 
               {user?.role === 'jury' && (
-                <Link
-                  to="/jury"
-                  onClick={close}
-                  className={`text-sm px-2 py-2 rounded hover:bg-indigo-700 transition-colors ${isActive('/jury') ? 'font-bold bg-indigo-700' : ''}`}
-                >
+                <Link to="/jury" onClick={close}
+                  className={`text-sm px-2 py-2 rounded hover:bg-indigo-700 transition-colors ${isActive('/jury') ? 'font-bold bg-indigo-700' : ''}`}>
                   Meine Wertungen
                 </Link>
               )}
 
-              <Link
-                to="/hilfe"
-                onClick={close}
-                className={`text-sm px-2 py-2 rounded hover:bg-indigo-700 transition-colors opacity-80 ${isActive('/hilfe') ? 'font-bold bg-indigo-700 opacity-100' : ''}`}
-              >
-                Hilfe
-              </Link>
+              {/* Hilfe-Gruppe Mobile */}
+              <div className="border-t border-indigo-700 mt-1 pt-1">
+                <Link to="/hilfe" onClick={close}
+                  className={`text-sm px-2 py-2 rounded hover:bg-indigo-700 transition-colors flex items-center gap-2 ${location.pathname === '/hilfe' ? 'font-bold bg-indigo-700' : 'opacity-80'}`}>
+                  Hilfe &amp; Dokumentation
+                </Link>
+                <Link to="/hilfe/infografik" onClick={close}
+                  className={`text-sm px-4 py-2 rounded hover:bg-indigo-700 transition-colors flex items-center gap-2 ${isActive('/hilfe/infografik') ? 'font-bold bg-indigo-700' : 'opacity-70'}`}>
+                  <span className="text-indigo-400">└</span> Infografik
+                </Link>
+              </div>
 
               {user && (
                 <button
@@ -160,7 +215,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* ── Footer ───────────────────────────────────────────── */}
       <footer className="text-center text-xs text-gray-400 py-4 border-t border-gray-100 bg-white">
-        Jury System &nbsp;·&nbsp; <Link to="/hilfe" className="hover:underline">Hilfe</Link>
+        Jury System &nbsp;·&nbsp;
+        <Link to="/hilfe" className="hover:underline">Hilfe</Link>
+        &nbsp;·&nbsp;
+        <Link to="/hilfe/infografik" className="hover:underline">Infografik</Link>
       </footer>
     </div>
   )

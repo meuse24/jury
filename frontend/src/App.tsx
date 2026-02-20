@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import HomePage            from './pages/HomePage'
 import LoginPage           from './pages/LoginPage'
 import HelpPage            from './pages/HelpPage'
+import WorkflowPage        from './pages/WorkflowPage'
 import PublicResultsPage   from './pages/PublicResultsPage'
 import AdminUsersPage      from './pages/admin/AdminUsersPage'
 import AdminEvalsPage      from './pages/admin/AdminEvalsPage'
@@ -22,8 +23,9 @@ export default function App() {
           {/* Public */}
           <Route path="/"            element={<HomePage />} />
           <Route path="/login"       element={<LoginPage />} />
-          <Route path="/hilfe"       element={<HelpPage />} />
-          <Route path="/results/:id" element={<PublicResultsPage />} />
+          <Route path="/hilfe"            element={<HelpPage />} />
+          <Route path="/hilfe/infografik" element={<WorkflowPage />} />
+          <Route path="/results/:id"      element={<PublicResultsPage />} />
 
           {/* Admin */}
           <Route path="/admin/users" element={
