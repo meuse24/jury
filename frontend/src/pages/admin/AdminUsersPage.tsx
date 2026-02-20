@@ -19,7 +19,7 @@ export default function AdminUsersPage() {
     try {
       const r = await adminUsers.list()
       setUsers(r.users)
-    } catch (e) {
+    } catch {
       setError('Fehler beim Laden der Benutzer.')
     } finally {
       setLoading(false)
@@ -32,6 +32,7 @@ export default function AdminUsersPage() {
     setEditId(u.id)
     setForm({ username: u.username, password: '', name: u.name, role: u.role })
     setError(''); setSuccess('')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const cancelEdit = () => { setEditId(null); setForm(emptyForm); setError(''); setSuccess('') }
@@ -69,49 +70,88 @@ export default function AdminUsersPage() {
     }
   }
 
+  const juryCount = users.filter(u => u.role === 'jury').length
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Benutzer verwalten</h1>
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h1 className="text-2xl font-bold">Benutzer verwalten</h1>
+        {juryCount === 0 && !loading && (
+          <span className="text-xs bg-amber-100 text-amber-700 px-3 py-1 rounded-full font-medium">
+            Noch keine Jury-Mitglieder
+          </span>
+        )}
+      </div>
 
       {error   && <Alert type="error">{error}</Alert>}
       {success && <Alert type="success">{success}</Alert>}
 
+      {/* Formular */}
       <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-semibold mb-4">{editId ? 'Benutzer bearbeiten' : 'Neuer Benutzer'}</h2>
+        <h2 className="text-lg font-semibold mb-4">
+          {editId ? 'Benutzer bearbeiten' : 'Neuer Benutzer'}
+        </h2>
         <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {!editId && (
             <div>
               <label className="block text-sm font-medium mb-1">Benutzername</label>
-              <input value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
-                className="w-full border rounded px-3 py-2 text-sm" required />
+              <input
+                value={form.username}
+                onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
+                className="w-full border rounded px-3 py-2 text-sm"
+                required
+                autoComplete="off"
+              />
             </div>
           )}
           <div>
             <label className="block text-sm font-medium mb-1">Name</label>
-            <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              className="w-full border rounded px-3 py-2 text-sm" required />
+            <input
+              value={form.name}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              className="w-full border rounded px-3 py-2 text-sm"
+              required
+            />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Passwort {editId && '(leer = unverändert)'}</label>
-            <input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-              className="w-full border rounded px-3 py-2 text-sm" required={!editId} />
+            <label className="block text-sm font-medium mb-1">
+              Passwort {editId && <span className="font-normal text-gray-400">(leer = unverändert)</span>}
+            </label>
+            <input
+              type="password"
+              value={form.password}
+              onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+              className="w-full border rounded px-3 py-2 text-sm"
+              required={!editId}
+              autoComplete="new-password"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Rolle</label>
-            <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
-              className="w-full border rounded px-3 py-2 text-sm">
+            <select
+              value={form.role}
+              onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
+              className="w-full border rounded px-3 py-2 text-sm bg-white"
+            >
               <option value="jury">Jury</option>
               <option value="admin">Admin</option>
             </select>
           </div>
-          <div className="sm:col-span-2 flex gap-2">
-            <button type="submit" disabled={submitting}
-              className="bg-indigo-700 hover:bg-indigo-800 text-white px-4 py-2 rounded text-sm disabled:opacity-50">
+          <div className="sm:col-span-2 flex gap-2 flex-wrap">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="bg-indigo-700 hover:bg-indigo-800 text-white px-5 py-2 rounded text-sm disabled:opacity-50 transition-colors"
+            >
               {submitting ? 'Speichern…' : editId ? 'Aktualisieren' : 'Erstellen'}
             </button>
             {editId && (
-              <button type="button" onClick={cancelEdit}
-                className="border rounded px-4 py-2 text-sm hover:bg-gray-50">
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="border rounded px-4 py-2 text-sm hover:bg-gray-50 transition-colors"
+              >
                 Abbrechen
               </button>
             )}
@@ -119,39 +159,64 @@ export default function AdminUsersPage() {
         </form>
       </div>
 
+      {/* Workflow-Hinweis wenn noch keine Jury-Mitglieder */}
+      {!loading && juryCount === 0 && users.length > 0 && (
+        <Alert type="info">
+          Erstellen Sie zunächst Jury-Mitglieder (Rolle: Jury), um diese später Wertungen zuweisen zu können.
+        </Alert>
+      )}
+
+      {/* Tabelle – horizontal scrollbar auf Mobile */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
         {loading ? <Spinner /> : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                {['Name', 'Benutzername', 'Rolle', 'Aktionen'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 font-medium text-gray-600">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {users.map(u => (
-                <tr key={u.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{u.name}</td>
-                  <td className="px-4 py-3 text-gray-600">{u.username}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                      {u.role}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 flex gap-2">
-                    <button onClick={() => startEdit(u)}
-                      className="text-indigo-600 hover:underline text-xs">Bearbeiten</button>
-                    <button onClick={() => deleteUser(u.id, u.name)}
-                      className="text-red-600 hover:underline text-xs">Löschen</button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[480px]">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  {['Name', 'Benutzername', 'Rolle', 'Aktionen'].map(h => (
+                    <th key={h} className="text-left px-4 py-3 font-medium text-gray-600">{h}</th>
+                  ))}
                 </tr>
-              ))}
-              {users.length === 0 && (
-                <tr><td colSpan={4} className="text-center text-gray-400 py-8">Keine Benutzer vorhanden.</td></tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y">
+                {users.map(u => (
+                  <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 font-medium whitespace-nowrap">{u.name}</td>
+                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">@{u.username}</td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap
+                        ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                        {u.role === 'admin' ? 'Admin' : 'Jury'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => startEdit(u)}
+                          className="text-indigo-600 hover:underline text-xs whitespace-nowrap"
+                        >
+                          Bearbeiten
+                        </button>
+                        <button
+                          onClick={() => deleteUser(u.id, u.name)}
+                          className="text-red-600 hover:underline text-xs whitespace-nowrap"
+                        >
+                          Löschen
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {users.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="text-center text-gray-400 py-8">
+                      Noch keine Benutzer vorhanden. Erstellen Sie den ersten Benutzer oben.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

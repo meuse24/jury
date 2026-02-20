@@ -77,10 +77,12 @@ export default function AdminEvalFormPage() {
       }
       if (isEdit) {
         await adminEvals.update(id!, payload)
+        nav('/admin/evaluations')
       } else {
-        await adminEvals.create(payload)
+        const r = await adminEvals.create(payload)
+        // After creating, guide admin directly to jury assignment
+        nav(`/admin/evaluations/${r.evaluation.id}/assignments`)
       }
-      nav('/admin/evaluations')
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Fehler beim Speichern.')
     } finally {
@@ -91,11 +93,21 @@ export default function AdminEvalFormPage() {
   if (loading) return <Spinner />
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold">{isEdit ? 'Wertung bearbeiten' : 'Neue Wertung'}</h1>
+    <div className="max-w-2xl w-full space-y-6">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => nav('/admin/evaluations')}
+          className="text-gray-400 hover:text-gray-600 text-xl transition-colors"
+          aria-label="Zurück"
+        >
+          ←
+        </button>
+        <h1 className="text-2xl font-bold">{isEdit ? 'Wertung bearbeiten' : 'Neue Wertung'}</h1>
+      </div>
       {error && <Alert type="error">{error}</Alert>}
 
-      <form onSubmit={submit} className="bg-white shadow rounded-lg p-6 space-y-5">
+      <form onSubmit={submit} className="bg-white shadow rounded-lg p-5 sm:p-6 space-y-5">
         <div>
           <label className="block text-sm font-medium mb-1">Titel *</label>
           <input value={title} onChange={e => setTitle(e.target.value)}
@@ -186,13 +198,15 @@ export default function AdminEvalFormPage() {
           </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           <button type="submit" disabled={submitting}
-            className="bg-indigo-700 hover:bg-indigo-800 text-white px-6 py-2 rounded text-sm disabled:opacity-50">
-            {submitting ? 'Speichern…' : isEdit ? 'Aktualisieren' : 'Erstellen'}
+            className="bg-indigo-700 hover:bg-indigo-800 text-white px-6 py-2 rounded text-sm disabled:opacity-50 transition-colors">
+            {submitting ? 'Speichern…' : isEdit ? 'Aktualisieren' : 'Erstellen & Jury zuweisen'}
           </button>
           <button type="button" onClick={() => nav('/admin/evaluations')}
-            className="border rounded px-4 py-2 text-sm hover:bg-gray-50">Abbrechen</button>
+            className="border rounded px-4 py-2 text-sm hover:bg-gray-50 transition-colors">
+            Abbrechen
+          </button>
         </div>
       </form>
     </div>

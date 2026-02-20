@@ -12,16 +12,15 @@ export default function AdminAssignmentsPage() {
   const { id } = useParams<{ id: string }>()
   const nav     = useNavigate()
 
-  const [ev, setEv]                 = useState<Evaluation | null>(null)
-  const [users, setUsers]           = useState<User[]>([])
-  const [statuses, setStatuses]     = useState<Record<string, JurySubmissionStatus>>({})
-  const [selected, setSelected]     = useState<Set<string>>(new Set())
+  const [ev, setEv]                       = useState<Evaluation | null>(null)
+  const [users, setUsers]                 = useState<User[]>([])
+  const [statuses, setStatuses]           = useState<Record<string, JurySubmissionStatus>>({})
+  const [selected, setSelected]           = useState<Set<string>>(new Set())
   const [hasCandidates, setHasCandidates] = useState(false)
-  const [loading, setLoading]       = useState(true)
-  const [error, setError]           = useState('')
-  const [success, setSuccess]       = useState('')
-  const [saving, setSaving]         = useState(false)
-  // Track which unchecked members have existing submissions (for warning)
+  const [loading, setLoading]             = useState(true)
+  const [error, setError]                 = useState('')
+  const [success, setSuccess]             = useState('')
+  const [saving, setSaving]               = useState(false)
   const [pendingRemove, setPendingRemove] = useState<Set<string>>(new Set())
 
   const loadAll = async () => {
@@ -38,7 +37,6 @@ export default function AdminAssignmentsPage() {
       setStatuses(map)
       setHasCandidates(sr.has_candidates)
     } else {
-      // Reset stale status state when all assignments are removed
       setStatuses({})
       setHasCandidates(false)
     }
@@ -55,7 +53,6 @@ export default function AdminAssignmentsPage() {
       const next = new Set(s)
       if (next.has(uid)) {
         next.delete(uid)
-        // Flag for warning if this member has a submission
         if (statuses[uid]?.has_submission) {
           setPendingRemove(p => new Set([...p, uid]))
         }
@@ -68,7 +65,6 @@ export default function AdminAssignmentsPage() {
   }
 
   const save = async () => {
-    // Warn if removing members with submissions
     if (pendingRemove.size > 0) {
       const names = [...pendingRemove]
         .map(uid => statuses[uid]?.name ?? uid)
@@ -88,7 +84,6 @@ export default function AdminAssignmentsPage() {
           : 'Zuweisung gespeichert.'
       )
       setPendingRemove(new Set())
-      // Reload statuses
       await loadAll()
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Fehler beim Speichern.')
@@ -104,13 +99,23 @@ export default function AdminAssignmentsPage() {
     ? [...selected].filter(uid => (statuses[uid]?.submission_count ?? 0) > 0).length
     : [...selected].filter(uid => statuses[uid]?.has_submission).length
 
+  const allSubmitted = assignedCount > 0 && submittedCount === assignedCount
+
   return (
-    <div className="max-w-xl space-y-6">
+    <div className="max-w-xl w-full space-y-6">
+
+      {/* Breadcrumb / Back */}
       <div className="flex items-center gap-3">
-        <button onClick={() => nav('/admin/evaluations')} className="text-gray-400 hover:text-gray-600 text-xl">←</button>
-        <div>
-          <h1 className="text-2xl font-bold">Jury & Status</h1>
-          <p className="text-sm text-gray-500">{ev?.title}</p>
+        <button
+          onClick={() => nav('/admin/evaluations')}
+          className="text-gray-400 hover:text-gray-600 text-xl transition-colors"
+          aria-label="Zurück"
+        >
+          ←
+        </button>
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold">Jury &amp; Status</h1>
+          <p className="text-sm text-gray-500 truncate">{ev?.title}</p>
         </div>
       </div>
 
@@ -124,12 +129,20 @@ export default function AdminAssignmentsPage() {
           <div className="text-sm text-gray-500 mt-1">Zugewiesen</div>
         </div>
         <div className="bg-white shadow rounded-lg p-4 text-center">
-          <div className={`text-3xl font-bold ${submittedCount === assignedCount && assignedCount > 0 ? 'text-green-600' : 'text-amber-600'}`}>
+          <div className={`text-3xl font-bold ${allSubmitted ? 'text-green-600' : 'text-amber-600'}`}>
             {submittedCount} / {assignedCount}
           </div>
           <div className="text-sm text-gray-500 mt-1">Wertung abgegeben</div>
         </div>
       </div>
+
+      {/* Alle haben abgegeben → Freigabe-Hinweis */}
+      {allSubmitted && (
+        <Alert type="success">
+          Alle Jury-Mitglieder haben ihre Wertung abgegeben.
+          Sie können die Ergebnisse jetzt unter <strong>Wertungen → Ergebnisse freigeben</strong> veröffentlichen.
+        </Alert>
+      )}
 
       {/* Jury-Mitglieder */}
       <div className="bg-white shadow rounded-lg divide-y">
@@ -139,37 +152,40 @@ export default function AdminAssignmentsPage() {
         </div>
 
         {users.length === 0 && (
-          <p className="text-gray-400 text-sm text-center py-8">
+          <p className="text-gray-400 text-sm text-center py-8 px-4">
             Keine Jury-Mitglieder vorhanden. Bitte zuerst unter <em>Benutzer</em> anlegen.
           </p>
         )}
 
         {users.map(u => {
-          const isSelected  = selected.has(u.id)
-          const status      = statuses[u.id]
+          const isSelected    = selected.has(u.id)
+          const status        = statuses[u.id]
           const hasSubmission = status?.has_submission ?? false
-          const willDelete  = pendingRemove.has(u.id)
+          const willDelete    = pendingRemove.has(u.id)
 
           return (
-            <label key={u.id}
-              className={`flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-gray-50 transition-colors ${willDelete ? 'bg-red-50' : ''}`}>
-              <div className="flex items-center gap-3">
+            <label
+              key={u.id}
+              className={`flex items-start justify-between px-5 py-4 cursor-pointer hover:bg-gray-50 transition-colors gap-3
+                ${willDelete ? 'bg-red-50' : ''}`}
+            >
+              <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
                   checked={isSelected}
                   onChange={() => toggle(u.id)}
-                  className="h-4 w-4 rounded text-indigo-600"
+                  className="h-4 w-4 rounded text-indigo-600 mt-0.5 shrink-0"
                 />
                 <div>
                   <div className="font-medium text-sm">{u.name}</div>
                   <div className="text-xs text-gray-400">@{u.username}</div>
+                  {willDelete && (
+                    <span className="text-xs text-red-600 font-medium mt-1 block">⚠ Wertung wird gelöscht</span>
+                  )}
                 </div>
-                {willDelete && (
-                  <span className="text-xs text-red-600 font-medium">⚠ Wertung wird gelöscht</span>
-                )}
               </div>
 
-              <div className="text-right">
+              <div className="text-right shrink-0">
                 {isSelected ? (
                   hasCandidates && status?.candidates ? (
                     <div>
@@ -184,11 +200,11 @@ export default function AdminAssignmentsPage() {
                       </span>
                       <div className="mt-1 space-y-0.5">
                         {status.candidates.map(cs => (
-                          <div key={cs.candidate_id} className="text-xs text-gray-400 flex items-center gap-1">
+                          <div key={cs.candidate_id} className="text-xs text-gray-400 flex items-center gap-1 justify-end">
+                            <span className="truncate max-w-[140px]">{cs.candidate_name}</span>
                             <span className={cs.has_submission ? 'text-green-500' : 'text-gray-300'}>
                               {cs.has_submission ? '✓' : '○'}
                             </span>
-                            <span className="truncate max-w-[120px]">{cs.candidate_name}</span>
                           </div>
                         ))}
                       </div>
@@ -226,7 +242,7 @@ export default function AdminAssignmentsPage() {
       <button
         onClick={save}
         disabled={saving}
-        className="w-full bg-indigo-700 hover:bg-indigo-800 text-white py-2 rounded font-medium disabled:opacity-50"
+        className="w-full bg-indigo-700 hover:bg-indigo-800 text-white py-2.5 rounded font-medium disabled:opacity-50 transition-colors"
       >
         {saving ? 'Speichern…' : 'Zuweisung speichern'}
       </button>
