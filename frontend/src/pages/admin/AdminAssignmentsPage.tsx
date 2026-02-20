@@ -364,9 +364,37 @@ export default function AdminAssignmentsPage() {
                   })}
                 </ul>
               </div>
-              <p className="text-xs text-amber-700">
-                Es wird empfohlen abzuwarten, bis alle Bewertungen vollständig sind.
-              </p>
+              {/* Konsequenz + Lösungshinweise */}
+              <div className="bg-white/70 border border-amber-200 rounded-lg px-3 py-2.5 space-y-2">
+                <p className="text-xs font-semibold text-amber-900">
+                  Auswirkung auf das Ergebnis:
+                </p>
+                <p className="text-xs text-amber-800">
+                  Die Durchschnittswerte werden nur aus <strong>{submittedCount}</strong> statt <strong>{assignedCount}</strong> Wertungen berechnet
+                  — fehlende Abgaben verzerren das Ergebnis, da einzelne Jury-Mitglieder überproportional gewichtet werden.
+                </p>
+                <p className="text-xs font-semibold text-amber-900 pt-1">Mögliche Maßnahmen:</p>
+                <div className="text-xs text-amber-800 flex gap-1.5">
+                  <span className="shrink-0 font-bold">1.</span>
+                  <span>
+                    Jury-Mitglieder ohne vollständige Abgabe oben <strong>abwählen</strong> und speichern —
+                    ihre Wertung wird aus der Berechnung entfernt.
+                  </span>
+                </div>
+                <div className="text-xs text-amber-800 flex gap-1.5">
+                  <span className="shrink-0 font-bold">2.</span>
+                  <span>
+                    <Link
+                      to={`/admin/evaluations/${id}/edit`}
+                      className="font-semibold underline hover:text-amber-900 transition-colors"
+                    >
+                      Einreichfrist verlängern →
+                    </Link>
+                    {' '}damit ausstehende Mitglieder noch abgeben können.
+                  </span>
+                </div>
+              </div>
+
               <button
                 onClick={() => handlePublish(false)}
                 disabled={publishing}

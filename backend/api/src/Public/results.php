@@ -103,7 +103,8 @@ if (count($candidates) > 0) {
 // ---- Without candidates: simple aggregation (backward compat) ----
 $agg = aggregate_scores($submissions, $eval['categories']);
 json_response([
-    'evaluation' => $evalInfo,
-    'mode'       => 'simple',
-    'results'    => $agg,
+    'evaluation'       => $evalInfo,
+    'mode'             => 'simple',
+    'total_jury_count' => count($eval['jury_assignments'] ?? []),
+    'results'          => $agg,
 ]);

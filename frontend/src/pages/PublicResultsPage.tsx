@@ -116,8 +116,17 @@ function SimpleReveal({ data }: { data: PublicResults }) {
             <div className="text-sm text-gray-500 mt-1">Kategorien</div>
           </div>
           <div>
-            <div className="text-4xl font-bold text-indigo-700">{results!.submission_count}</div>
-            <div className="text-sm text-gray-500 mt-1">Jury-Wertungen</div>
+            <div className="text-4xl font-bold text-indigo-700">
+              {results!.submission_count}
+              {data.total_jury_count && data.total_jury_count > results!.submission_count
+                ? <span className="text-2xl text-amber-500"> / {data.total_jury_count}</span>
+                : null}
+            </div>
+            <div className="text-sm text-gray-500 mt-1">
+              {data.total_jury_count && data.total_jury_count > results!.submission_count
+                ? 'Wertungen abgegeben'
+                : 'Jury-Wertungen'}
+            </div>
           </div>
           <div>
             <div className="text-4xl font-bold text-indigo-700">{totalMax}</div>
@@ -187,7 +196,11 @@ function SimpleReveal({ data }: { data: PublicResults }) {
           <div className="text-sm uppercase tracking-widest text-indigo-300">Gesamtergebnis</div>
           <div className="text-8xl font-black">{results!.total_average?.toFixed(2) ?? '—'}</div>
           <div className="text-indigo-200">von max. {totalMax} Punkten</div>
-          <div className="text-indigo-300 text-sm mt-2">{results!.submission_count} Jury-Wertungen</div>
+          <div className="text-indigo-300 text-sm mt-2">
+            {data.total_jury_count && data.total_jury_count > results!.submission_count
+              ? `${results!.submission_count} von ${data.total_jury_count} Jury-Wertungen`
+              : `${results!.submission_count} Jury-Wertungen`}
+          </div>
         </div>
       </div>
       <div className={`w-full max-w-md space-y-2 transition-all duration-700 delay-300 ${starsVisible ? 'opacity-100' : 'opacity-0'}`}>
@@ -376,7 +389,10 @@ function CandidatesReveal({ data }: { data: PublicResults }) {
               {currentCand.results.total_average?.toFixed(2) ?? '—'}
             </div>
             <div className="text-gray-400 text-sm mt-1">
-              Ø Gesamtpunkte · {currentCand.results.submission_count} Wertungen
+              Ø Gesamtpunkte ·{' '}
+              {juryCount > 0 && currentCand.results.submission_count < juryCount
+                ? <span className="text-amber-500 font-medium">{currentCand.results.submission_count} von {juryCount} Wertungen</span>
+                : `${currentCand.results.submission_count} Wertungen`}
             </div>
 
             {/* Category breakdown */}
@@ -424,7 +440,11 @@ function CandidatesReveal({ data }: { data: PublicResults }) {
               {winner.description && <div className="text-amber-100 text-sm">{winner.description}</div>}
               <div className="text-8xl font-black mt-4">{winner.results.total_average?.toFixed(2) ?? '—'}</div>
               <div className="text-amber-200">von max. {winner.results.max_per_entry} Punkten</div>
-              <div className="text-amber-200 text-sm">{winner.results.submission_count} Jury-Wertungen</div>
+              <div className="text-amber-200 text-sm">
+                {juryCount > 0 && winner.results.submission_count < juryCount
+                  ? `${winner.results.submission_count} von ${juryCount} Jury-Wertungen`
+                  : `${winner.results.submission_count} Jury-Wertungen`}
+              </div>
             </div>
           </div>
 
