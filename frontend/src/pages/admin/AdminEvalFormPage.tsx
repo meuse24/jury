@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { adminEvals, Category, Candidate, EvalPayload, ApiError } from '../../api/client'
+import { adminEvals, Category, Candidate, EvalPayload } from '../../api/client'
 import Alert from '../../components/Alert'
 import Spinner from '../../components/Spinner'
+import { getErrorMessage } from '../../utils/errors'
 
 function tsToInput(ts: number | undefined) {
   if (!ts) return ''
@@ -84,7 +85,7 @@ export default function AdminEvalFormPage() {
         nav(`/admin/evaluations/${r.evaluation.id}/assignments`)
       }
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Fehler beim Speichern.')
+      setError(getErrorMessage(e, 'Fehler beim Speichern.'))
     } finally {
       setSub(false)
     }

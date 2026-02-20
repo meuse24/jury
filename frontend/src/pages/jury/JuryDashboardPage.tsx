@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { jury, JuryEvaluationSummary, ApiError } from '../../api/client'
+import { jury, JuryEvaluationSummary } from '../../api/client'
 import Alert from '../../components/Alert'
+import EmptyState from '../../components/EmptyState'
 import Spinner from '../../components/Spinner'
-
-function fmtDate(ts: number) {
-  return new Date(ts * 1000).toLocaleString('de-AT')
-}
+import { fmtDate } from '../../utils/formatting'
+import { getErrorMessage } from '../../utils/errors'
 
 const statusConfig = {
   upcoming: { label: 'Bald verfügbar', cls: 'bg-yellow-100 text-yellow-700' },
@@ -47,7 +46,7 @@ export default function JuryDashboardPage() {
   useEffect(() => {
     jury.listEvals()
       .then(r => setEvals(r.evaluations))
-      .catch(e => setError(e instanceof ApiError ? e.message : 'Fehler beim Laden.'))
+      .catch(e => setError(getErrorMessage(e, 'Fehler beim Laden.')))
       .finally(() => setLoad(false))
   }, [])
 
@@ -73,11 +72,10 @@ export default function JuryDashboardPage() {
       {error && <Alert type="error">{error}</Alert>}
 
       {evals.length === 0 && !error && (
-        <div className="bg-white shadow rounded-lg p-10 text-center space-y-2">
-          <div className="text-4xl text-gray-200">📋</div>
-          <p className="text-gray-500">Dir sind noch keine Wertungen zugewiesen.</p>
-          <p className="text-xs text-gray-400">Wende dich an den Administrator.</p>
-        </div>
+        <EmptyState
+          title="Dir sind noch keine Wertungen zugewiesen."
+          description="Wende dich an den Administrator."
+        />
       )}
 
       {/* Prominente Warnung wenn noch Bewertungen ausstehen */}

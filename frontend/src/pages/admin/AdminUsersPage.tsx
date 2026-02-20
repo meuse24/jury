@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { adminUsers, User, ApiError } from '../../api/client'
+import { adminUsers, User } from '../../api/client'
 import Alert from '../../components/Alert'
 import Spinner from '../../components/Spinner'
+import { getErrorMessage } from '../../utils/errors'
 
 const emptyForm = { username: '', password: '', name: '', role: 'jury' }
 
@@ -53,7 +54,7 @@ export default function AdminUsersPage() {
       setEditId(null); setForm(emptyForm)
       await load()
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Fehler beim Speichern.')
+      setError(getErrorMessage(e, 'Fehler beim Speichern.'))
     } finally {
       setSub(false)
     }
@@ -66,7 +67,7 @@ export default function AdminUsersPage() {
       setSuccess('Benutzer gelöscht.')
       await load()
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Fehler beim Löschen.')
+      setError(getErrorMessage(e, 'Fehler beim Löschen.'))
     }
   }
 

@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { adminEvals, Evaluation, ApiError } from '../../api/client'
+import { adminEvals, Evaluation } from '../../api/client'
 import Alert from '../../components/Alert'
+import EmptyState from '../../components/EmptyState'
 import Spinner from '../../components/Spinner'
-
-function fmtDate(ts: number) {
-  return new Date(ts * 1000).toLocaleString('de-AT')
-}
+import { fmtDate } from '../../utils/formatting'
+import { getErrorMessage } from '../../utils/errors'
 
 function EvalStatusBadge({ ev }: { ev: Evaluation }) {
   const now = Date.now() / 1000
@@ -47,7 +46,7 @@ export default function AdminEvalsPage() {
       await adminEvals.delete(id)
       setSuccess('Wertung gelöscht.'); setError('')
       await load()
-    } catch (e) { setError(e instanceof ApiError ? e.message : 'Fehler.') }
+    } catch (e) { setError(getErrorMessage(e, 'Fehler.')) }
   }
 
   return (
@@ -69,16 +68,10 @@ export default function AdminEvalsPage() {
       {loading ? <Spinner /> : (
         <div className="space-y-4">
           {evals.length === 0 && (
-            <div className="bg-white shadow rounded-lg p-10 text-center space-y-3">
-              <div className="text-4xl text-gray-200">📋</div>
-              <p className="text-gray-500">Noch keine Wertungen vorhanden.</p>
-              <Link
-                to="/admin/evaluations/new"
-                className="inline-block bg-indigo-700 hover:bg-indigo-800 text-white px-5 py-2 rounded text-sm transition-colors"
-              >
-                Erste Wertung erstellen
-              </Link>
-            </div>
+            <EmptyState
+              title="Noch keine Wertungen vorhanden."
+              action={{ label: 'Erste Wertung erstellen', to: '/admin/evaluations/new' }}
+            />
           )}
 
           {evals.map(ev => {

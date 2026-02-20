@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { jury, Evaluation, Submission, ScoreEntry, ApiError } from '../../api/client'
+import { jury, Evaluation, Submission, ScoreEntry } from '../../api/client'
 import Alert from '../../components/Alert'
 import Spinner from '../../components/Spinner'
+import { getErrorMessage } from '../../utils/errors'
 
 export default function JuryEvalPage() {
   const { id } = useParams<{ id: string }>()
@@ -52,7 +53,7 @@ export default function JuryEvalPage() {
       setScoresByCand(initScores)
       setCommentByCand(initComments)
       if (hasCands) setActiveCandidateId(candidates[0].id)
-    }).catch(e => setError(e instanceof ApiError ? e.message : 'Fehler beim Laden.'))
+    }).catch(e => setError(getErrorMessage(e, 'Fehler beim Laden.')))
     .finally(() => setLoading(false))
   }, [id])
 
@@ -111,7 +112,7 @@ export default function JuryEvalPage() {
           : 'Wertung erfolgreich gespeichert!'
       )
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Fehler beim Speichern.')
+      setError(getErrorMessage(e, 'Fehler beim Speichern.'))
     } finally {
       setSaving(false)
     }

@@ -1,8 +1,8 @@
 import { useState, FormEvent, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { ApiError } from '../api/client'
 import Alert from '../components/Alert'
+import { getErrorMessage } from '../utils/errors'
 
 export default function LoginPage() {
   const { login, user } = useAuth()
@@ -28,7 +28,7 @@ export default function LoginPage() {
       await login(username, password)
       nav('/', { replace: true })
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Anmeldung fehlgeschlagen.')
+      setError(getErrorMessage(err, 'Anmeldung fehlgeschlagen.'))
     } finally {
       setLoading(false)
     }

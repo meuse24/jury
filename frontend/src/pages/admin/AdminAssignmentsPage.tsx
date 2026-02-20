@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { adminEvals, adminUsers, Evaluation, User, JurySubmissionStatus, ApiError } from '../../api/client'
+import { adminEvals, adminUsers, Evaluation, User, JurySubmissionStatus } from '../../api/client'
 import Alert from '../../components/Alert'
 import Spinner from '../../components/Spinner'
-
-function fmtDate(ts: number) {
-  return new Date(ts * 1000).toLocaleString('de-AT')
-}
+import { fmtDate } from '../../utils/formatting'
+import { getErrorMessage } from '../../utils/errors'
 
 export default function AdminAssignmentsPage() {
   const { id } = useParams<{ id: string }>()
@@ -87,7 +85,7 @@ export default function AdminAssignmentsPage() {
       setPendingRemove(new Set())
       await loadAll()
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Fehler beim Speichern.')
+      setError(getErrorMessage(e, 'Fehler beim Speichern.'))
     } finally {
       setSaving(false)
     }
@@ -107,7 +105,7 @@ export default function AdminAssignmentsPage() {
       setSuccess('Ergebnisse wurden freigegeben.')
       await loadAll()
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Fehler beim Freigeben.')
+      setError(getErrorMessage(e, 'Fehler beim Freigeben.'))
     } finally {
       setPublishing(false)
     }
@@ -120,7 +118,7 @@ export default function AdminAssignmentsPage() {
       setSuccess('Freigabe wurde zurückgezogen.')
       await loadAll()
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Fehler.')
+      setError(getErrorMessage(e, 'Fehler.'))
     } finally {
       setPublishing(false)
     }
