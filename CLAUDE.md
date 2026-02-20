@@ -37,15 +37,20 @@ Vollständige Client-Server-Webapp für Jury-Wertungen. Deployed auf Shared Host
 │   │   └── pages/
 │   │       ├── LoginPage.tsx
 │   │       ├── HelpPage.tsx          10 Abschnitte: Workflow + Best Practices (Admin + Jury)
+│   │       ├── WorkflowPage.tsx      Infografik-Seite (/hilfe/infografik): workflow.jpg mit Pan & Zoom
 │   │       ├── PublicResultsPage.tsx Öffentliche Ergebnisse – animierte Enthüllung (simple + candidates)
+│   │       │                         Zeigt "X von Y Jury-Wertungen" wenn Abgaben fehlen
 │   │       ├── admin/
 │   │       │   ├── AdminUsersPage.tsx
 │   │       │   ├── AdminEvalsPage.tsx       Freigabe-Button entfernt → nur in AdminAssignmentsPage
 │   │       │   ├── AdminEvalFormPage.tsx    Erstellen + Bearbeiten; Auto-Redirect zu Assignments
-│   │       │   └── AdminAssignmentsPage.tsx Jury & Status + Freigabe (zentral, mit Ausstehend-Warnung)
+│   │       │   └── AdminAssignmentsPage.tsx Jury & Status + Freigabe (zentral); bei fehlenden Abgaben:
+│   │       │                                Konsequenz auf Durchschnitt + Lösungshinweise (Abwählen / Frist)
 │   │       └── jury/
 │   │           ├── JuryDashboardPage.tsx
 │   │           └── JuryEvalPage.tsx        Bewertungsformular – Kandidaten-Tabs oder einfacher Modus
+│   ├── public/
+│   │   └── workflow.jpg  Workflow-Infografik (Vite static asset → dist/)
 │   ├── vite.config.ts    Build + assembleDistPlugin (kopiert api/, data/, .htaccess)
 │   └── .env              VITE_BASE_PATH=/apps/jury  (für Prod-Build)
 ├── data/                 JSON-Datenspeicher (nicht in dist/ committed)
@@ -118,7 +123,7 @@ Vollständige Client-Server-Webapp für Jury-Wertungen. Deployed auf Shared Host
 | PUT | `/api/jury/evaluations/:id/submission` | jury + assigned + open | Einreichen (einfacher Modus) |
 | GET | `/api/jury/evaluations/:id/candidates/:cid/submission` | jury + assigned | Kandidaten-Submission lesen |
 | PUT | `/api/jury/evaluations/:id/candidates/:cid/submission` | jury + assigned + open | Kandidaten-Submission einreichen |
-| GET | `/api/public/evaluations/:id/results` | – | Öffentliche Ergebnisse (mode: simple\|candidates) |
+| GET | `/api/public/evaluations/:id/results` | – | Öffentliche Ergebnisse (mode: simple\|candidates); liefert immer `total_jury_count` |
 
 ---
 
@@ -128,13 +133,14 @@ Vollständige Client-Server-Webapp für Jury-Wertungen. Deployed auf Shared Host
 |-------|--------|-------|
 | `/` | – | Redirect je nach Rolle |
 | `/login` | – | Login |
-| `/hilfe` | – | Hilfeseite |
+| `/hilfe` | – | Hilfeseite (10 Abschnitte) |
+| `/hilfe/infografik` | – | Workflow-Infografik (workflow.jpg, Pan & Zoom) |
 | `/results/:id` | – | Öffentliche Ergebnisse |
 | `/admin/users` | admin | Benutzerverwaltung |
 | `/admin/evaluations` | admin | Wertungsübersicht |
 | `/admin/evaluations/new` | admin | Neue Wertung |
 | `/admin/evaluations/:id/edit` | admin | Wertung bearbeiten |
-| `/admin/evaluations/:id/assignments` | admin | Jury & Status |
+| `/admin/evaluations/:id/assignments` | admin | Jury & Status / Freigabe |
 | `/jury` | jury | Dashboard |
 | `/jury/evaluations/:id` | jury | Bewertungsformular |
 
@@ -191,6 +197,9 @@ Inhalt von `dist/` nach `/apps/jury/` uploaden. **Versteckte Dateien anzeigen** 
 | Kandidaten | `candidate_id` auf Submission; null = einfach, uuid = Kandidaten | Abwärtskompatibel, Repository-neutral |
 | Ergebnis-Enthüllung | Animierte Phasen: intro → reveal → finale | Spannung bei öffentlicher Bekanntgabe; Kandidaten umgekehrt (letzter zuerst) |
 | Ausstehend-Warnungen | Orange Warnblöcke mit namentlichen Links | Jury verpasst keine offenen Bewertungen |
+| Fehlende Abgaben | Konsequenz auf Durchschnitt erklären + 2 Lösungshinweise | Admin kann informiert entscheiden: Mitglied entfernen oder Frist verlängern |
+| total_jury_count | Immer in Public-Results-Response (simple + candidates) | Frontend zeigt "X von Y Wertungen" wenn Abgaben fehlen |
+| Infografik | WorkflowPage mit workflow.jpg; Drag-Pan + Mausrad-Zoom + Pinch-Zoom | Responsive ohne feste Bildgröße; zoomRef verhindert stale-closure bei Mausrad |
 
 ---
 

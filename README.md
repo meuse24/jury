@@ -48,7 +48,15 @@
 - Animierte Enthüllung (Intro → Kategorie-für-Kategorie → Finale)
 - Einfacher Modus: Gesamtpunktzahl mit Kategorie-Breakdown
 - Kandidaten-Modus: Rang-Enthüllung (letzter Platz → Sieger)
+- Zeigt „X von Y Jury-Wertungen" wenn nicht alle Mitglieder abgegeben haben
 - Seite nur erreichbar wenn Admin freigibt **und** Zeitpunkt erreicht
+
+### Hilfe & Infografik
+- Hilfeseite mit 10 Abschnitten: Workflow + Best Practices für Admin und Jury
+- Infografik-Seite (`/hilfe/infografik`): workflow.jpg mit Pan & Zoom
+  - Mausrad zum Zoomen (0,5× – 4×, Zoom um Cursorpunkt)
+  - Klicken & Ziehen zum Verschieben
+  - Zwei-Finger-Pinch auf Touch-Geräten
 
 ---
 
@@ -74,12 +82,19 @@
 
  5. Ergebnisse freigeben  [nur auf Jury-&-Status-Seite]
       Alle abgegeben  →  grüner Button "✓ Ergebnisse jetzt freigeben"
-      Noch offen      →  Warnliste + "Trotzdem freigeben ⚠"
+      Noch offen      →  Warnliste + Konsequenz-Erklärung + zwei Lösungshinweise:
+                           a) Mitglied abwählen & speichern (Submission wird entfernt)
+                           b) Einreichfrist verlängern → direkter Link zu "Wertung bearbeiten"
+                         + "Trotzdem freigeben ⚠" als Notfall-Option
       Freigegeben     →  "Freigabe zurückziehen" + öffentlicher Link
 ```
 
 > **Checkliste vor Freigabe:** Alle Mitglieder grün ✓ · Einreichfenster abgelaufen ·
 > Ergebnisse-ab-Zeitpunkt erreicht · Ergebnisse stichprobenartig geprüft
+
+> **Hinweis:** Fehlende Abgaben verzerren den Durchschnitt, da die vorhandenen
+> Wertungen überproportional gewichtet werden. Die öffentliche Ergebnisseite zeigt
+> „X von Y Jury-Wertungen" damit Zuschauer die Datenbasis einschätzen können.
 
 ### Jury – Best Practice
 
@@ -135,20 +150,23 @@
 │   ├── src/
 │   │   ├── api/client.ts         Typed API-Client (fetch + credentials)
 │   │   ├── hooks/useAuth.tsx     AuthProvider + useAuth Hook
+│   ├── public/
+│   │   └── workflow.jpg          Infografik-Bild (Vite static asset)
 │   │   ├── components/
-│   │   │   ├── Layout.tsx        Header (Hamburger Mobile), Footer, sticky Nav
+│   │   │   ├── Layout.tsx        Header (Hamburger Mobile), Hilfe-Dropdown, Footer
 │   │   │   ├── ProtectedRoute.tsx
 │   │   │   ├── Alert.tsx
 │   │   │   └── Spinner.tsx
 │   │   └── pages/
 │   │       ├── LoginPage.tsx
-│   │       ├── HelpPage.tsx      10 Abschnitte: Workflow + Best Practices
-│   │       ├── PublicResultsPage.tsx  Animierte Ergebnisseite
+│   │       ├── HelpPage.tsx           10 Abschnitte: Workflow + Best Practices
+│   │       ├── WorkflowPage.tsx       Infografik mit Pan & Zoom (/hilfe/infografik)
+│   │       ├── PublicResultsPage.tsx  Animierte Ergebnisseite; "X von Y Wertungen"
 │   │       ├── admin/
 │   │       │   ├── AdminUsersPage.tsx       Benutzerverwaltung
 │   │       │   ├── AdminEvalsPage.tsx        Wertungsübersicht + Workflow-CTAs
 │   │       │   ├── AdminEvalFormPage.tsx     Erstellen/Bearbeiten
-│   │       │   └── AdminAssignmentsPage.tsx  Jury zuweisen + Status + Freigabe
+│   │       │   └── AdminAssignmentsPage.tsx  Jury + Status + Freigabe + Lösungshinweise
 │   │       └── jury/
 │   │           ├── JuryDashboardPage.tsx    Übersicht + Warnungen + Fortschritt
 │   │           └── JuryEvalPage.tsx         Bewertungsformular + Weiter-Führung
@@ -280,6 +298,7 @@
 | `/` | – | Redirect je nach Rolle |
 | `/login` | – | Anmeldeseite |
 | `/hilfe` | – | Hilfe & Dokumentation (10 Abschnitte) |
+| `/hilfe/infografik` | – | Workflow-Infografik (Pan & Zoom) |
 | `/results/:id` | – | Öffentliche Ergebnisse (animiert) |
 | `/admin/users` | admin | Benutzerverwaltung |
 | `/admin/evaluations` | admin | Wertungsübersicht |
@@ -401,6 +420,9 @@ Demo-Submissions (Talentwettbewerb, Kandidaten: Anna, Ben, Clara):
 | Ergebnis-Enthüllung | Animierte Phasen: intro → reveal → finale | Spannung bei öffentlicher Bekanntgabe |
 | Responsivität | Mobile-first, Hamburger < 640 px, overflow-x-auto für Tabellen | Nutzbar auf Smartphones, Tablets, Desktop |
 | Workflow-Führung | CTAs, Warnungen, Auto-Redirect | Fehlbedienung und vergessene Schritte minimieren |
+| Fehlende Abgaben | Konsequenz erklären + Lösungshinweise (Abwählen / Frist verlängern) | Admin kann informiert entscheiden statt blind freigeben |
+| total_jury_count | In Public-Results-Response immer enthalten (simple + candidates) | Zuschauer sehen Vollständigkeit der Wertungsbasis |
+| Infografik Pan+Zoom | zoomRef + nativer non-passive touchmove Listener | Kein stale-closure beim Mausrad; Pinch zuverlässig auf iOS |
 
 ---
 
