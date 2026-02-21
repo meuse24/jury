@@ -30,6 +30,7 @@
   - **Einfacher Modus** – eine Gesamtbewertung pro Jury-Mitglied
   - **Kandidaten-Modus** – Jury bewertet jeden Kandidaten einzeln, automatisches Ranking
 - **Publikumswertung** (optional): per QR-Code aktivierbar, zählt als gleichrangiges Jury-Mitglied
+- Publikums-Teilnehmerzahl in der Wertungsübersicht sichtbar
 - Jury-Mitglieder zuweisen; Live-Einreichstatus pro Mitglied und Kandidat
 - Freigabe-Workflow zentral auf der Jury-&-Status-Seite:
   - Alle abgegeben → grüner CTA

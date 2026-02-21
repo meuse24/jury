@@ -104,6 +104,12 @@ export default function AdminEvalsPage() {
                       <span>Jury: {ev.jury_assignments.length} Mitglied(er)</span>
                       <span>·</span>
                       <span>Kategorien: {ev.categories.length}</span>
+                      {ev.audience_enabled && (
+                        <>
+                          <span>·</span>
+                          <span>Publikum: {ev.audience_participant_count ?? 0}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -8,7 +8,8 @@ export default function AudienceVotePage() {
   const { id } = useParams<{ id: string }>()
   const [info, setInfo] = useState<AudienceInfo | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [loadError, setLoadError] = useState('')
+  const [submitError, setSubmitError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [selectedCandidate, setSelectedCandidate] = useState<string>('')
@@ -21,7 +22,7 @@ export default function AudienceVotePage() {
         setScore(Math.floor((r.audience_max_score ?? 10) / 2))
       })
       .catch(e => {
-        setError(
+        setLoadError(
           e instanceof ApiError && e.status === 404
             ? 'Für diese Wertung ist keine Publikumswertung verfügbar.'
             : 'Fehler beim Laden der Publikumswertung.'
@@ -33,7 +34,7 @@ export default function AudienceVotePage() {
   const submit = async () => {
     if (!info) return
     setSubmitting(true)
-    setError('')
+    setSubmitError('')
     try {
       if (info.mode === 'candidates') {
         await publicApi.voteAudience(id!, { candidate_id: selectedCandidate })
@@ -45,9 +46,9 @@ export default function AudienceVotePage() {
       if (e instanceof ApiError && e.status === 409) {
         setSubmitted(true)
       } else if (e instanceof ApiError && e.status === 403) {
-        setError('Die Publikumswertung ist aktuell nicht offen.')
+        setSubmitError('Die Publikumswertung ist aktuell nicht offen.')
       } else {
-        setError('Fehler beim Senden der Stimme.')
+        setSubmitError('Fehler beim Senden der Stimme.')
       }
     } finally {
       setSubmitting(false)
@@ -55,9 +56,9 @@ export default function AudienceVotePage() {
   }
 
   if (loading) return <Spinner />
-  if (error || !info) return (
+  if (loadError || !info) return (
     <div className="flex justify-center items-center min-h-[50vh] px-4">
-      <Alert type="info">{error || 'Nicht verfügbar.'}</Alert>
+      <Alert type="info">{loadError || 'Nicht verfügbar.'}</Alert>
     </div>
   )
 
@@ -97,7 +98,11 @@ export default function AudienceVotePage() {
           <p className="text-gray-500">{info.evaluation.description}</p>
         )}
         <p className="text-xs text-gray-400">Du kannst nur einmal abstimmen.</p>
+        <p className="text-xs text-gray-400">Zeitraum: {openAt} – {closeAt}</p>
+        <p className="text-xs text-gray-400">Teilnehmer bisher: {info.audience_participants}</p>
       </div>
+
+      {submitError && <Alert type="error">{submitError}</Alert>}
 
       {info.mode === 'candidates' ? (
         <div className="space-y-4">
@@ -117,6 +122,9 @@ export default function AudienceVotePage() {
               </button>
             ))}
           </div>
+          {!selectedCandidate && (
+            <p className="text-xs text-gray-400">Bitte wähle einen Kandidaten aus.</p>
+          )}
         </div>
       ) : (
         <div className="space-y-3">

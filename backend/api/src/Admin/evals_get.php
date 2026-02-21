@@ -10,4 +10,8 @@ if ($eval === null) {
     json_error('NOT_FOUND', 'Evaluation not found.', 404);
 }
 
+if (($eval['audience_enabled'] ?? false) === true) {
+    $eval['audience_participant_count'] = audience_vote_repo()->countByEvaluation($id);
+}
+
 json_response(['evaluation' => $eval]);

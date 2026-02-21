@@ -77,6 +77,7 @@ export interface Evaluation {
   results_published_at: number | null
   audience_enabled?: boolean
   audience_max_score?: number
+  audience_participant_count?: number
   jury_assignments: string[]
   created_at: number
   updated_at: number
