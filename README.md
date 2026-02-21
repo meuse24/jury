@@ -32,6 +32,10 @@
 - **Publikumswertung** (optional): per QR-Code aktivierbar, zählt als gleichrangiges Jury-Mitglied
 - Publikums-Teilnehmerzahl in der Wertungsübersicht sichtbar
 - Jury-Mitglieder zuweisen; Live-Einreichstatus pro Mitglied und Kandidat
+- Abstimmungszeitslot (von/bis) sichtbar in **Jury & Status** inkl. Zustand:
+  - noch nicht gestartet
+  - geöffnet
+  - abgelaufen (mit Direktlink zur Ergebnisseite)
 - Freigabe-Workflow zentral auf der Jury-&-Status-Seite:
   - Alle abgegeben → grüner CTA
   - Noch ausstehend → Warnliste mit Namen + optionales „Trotzdem freigeben"
@@ -56,9 +60,11 @@
 
 ### Publikum
 - Teilnahme per QR-Code / Link
-- Einmalige Stimmabgabe pro Gerät (Cookie-basiert, Best-Effort)
+- Einmalige Stimmabgabe pro Gerät (Cookie-basiert, Best-Effort — Inkognito/Cookie-Löschen ermöglicht erneute Stimme)
 - Kandidaten-Modus: Wahl eines Kandidaten
 - Einfacher Modus: Punkte 0–X (X konfigurierbar)
+- Bei geschlossenem Zeitfenster wird ein Ergebnislink angezeigt.
+- Nach Stimmabgabe ("Danke für deine Stimme!") wird ebenfalls ein Ergebnislink angezeigt.
 
 ### Hilfe & Infografik
 - Hilfeseite mit 10 Abschnitten: Workflow + Best Practices für Admin und Jury
@@ -162,11 +168,14 @@
 │       └── Repository/           JsonStore.php, repositories.php
 │
 ├── frontend/                     React SPA
+│   ├── eslint.config.js          ESLint v9 Flat Config (TS + React Hooks)
 │   ├── public/
 │   │   └── workflow.jpg          Infografik-Bild (Vite static asset)
 │   ├── src/
 │   │   ├── api/client.ts         Typed API-Client (fetch + credentials)
 │   │   ├── hooks/useAuth.tsx     AuthProvider + useAuth Hook
+│   │   ├── types/
+│   │   │   └── qrcode.d.ts       Lokale Typen für `qrcode` (toDataURL)
 │   │   ├── utils/
 │   │   │   ├── formatting.ts     fmtDate – Datumsformatierung (de-AT)
 │   │   │   └── errors.ts         getErrorMessage – ApiError → string
@@ -322,7 +331,7 @@
 | Method | Path | Auth | Beschreibung |
 |--------|------|------|---|
 | GET | `/api/public/evaluations/:id/results` | – | Öffentliche Ergebnisse (`mode: simple \| candidates`) |
-| GET | `/api/public/evaluations/:id/audience` | – | Publikums-Info (Status, Modus, Kandidaten, Max-Score) |
+| GET | `/api/public/evaluations/:id/audience` | – | Publikums-Info (Status, Modus, Kandidaten; `audience_max_score` nur im einfachen Modus) |
 | POST | `/api/public/evaluations/:id/audience/vote` | – | Publikums-Stimme abgeben (einmalig pro Gerät) |
 
 ---
@@ -350,12 +359,13 @@
 ## Publikumswertung
 
 - Aktivierung in der Wertungs-Form (Admin) per Toggle.
-- QR-Link wird nach dem Speichern angezeigt (`/audience/:id`).
-- Einmalige Stimmabgabe pro Gerät (Cookie-basiert, Best-Effort).
-- Kandidaten-Modus: Publikum wählt einen Kandidaten.
-- Einfacher Modus: Punkte `0–X` (X konfigurierbar).
+- QR-Link wird nach dem Speichern angezeigt (`/audience/:id`) – in Bearbeiten- und Jury-&-Status-Ansicht.
+- Einmalige Stimmabgabe pro Gerät (Cookie-basiert, Best-Effort; Inkognito/Cookie-Löschen ermöglicht erneute Stimme).
+- Kandidaten-Modus: Publikum wählt einen Kandidaten; Stimmenanteil wird linear auf die Jury-Gesamtpunkte skaliert (100% = volle Punkte).
+- Einfacher Modus: Punkte `0–X` (0 erlaubt, X konfigurierbar; Default 10 falls nicht gesetzt).
 - Ergebnisse: Publikum zählt als gleichrangiges Jury-Mitglied, Teilnehmerzahl wird angezeigt.
-- QR-Code wird im Admin-Formular lokal im Frontend generiert (kein externer Dienst).
+- Deaktivieren entfernt bestehende Publikumsstimmen nicht; Reaktivieren zählt alte Stimmen wieder mit.
+- QR-Code wird im Frontend lokal generiert (kein externer Dienst).
 
 ## Lokale Entwicklung
 
@@ -379,6 +389,13 @@ npm run dev
 ```
 
 Der Vite Dev-Server proxied API-Anfragen automatisch an `localhost:8000`.
+
+### Codequalität prüfen
+```bash
+cd frontend
+npm run lint
+npm run build
+```
 
 ### Ersten Admin anlegen
 ```bash
@@ -469,9 +486,11 @@ Demo-Submissions (Talentwettbewerb, Kandidaten: Anna, Ben, Clara):
 | Workflow-Führung | CTAs, Warnungen, Auto-Redirect | Fehlbedienung und vergessene Schritte minimieren |
 | Fehlende Abgaben | Konsequenz erklären + Lösungshinweise (Abwählen / Frist verlängern) | Admin kann informiert entscheiden statt blind freigeben |
 | total_jury_count | In Public-Results-Response immer enthalten (simple + candidates) | Zuschauer sehen Vollständigkeit der Wertungsbasis |
-| Publikumswertung | Einmalige Stimme pro Gerät via Cookie (Best-Effort) | Niedrige Einstiegshürde, kein Login nötig |
+| Publikumswertung | Einmalige Stimme pro Gerät via Cookie (Best-Effort, nicht manipulationssicher) | Niedrige Einstiegshürde, kein Login nötig |
+| Publikum nach Voting | Ergebnislink auf "geschlossen" und "Danke für deine Stimme" | Direkter Übergang zur öffentlichen Ergebnisansicht |
 | Infografik Pan+Zoom | CSS-Transform (`translate` + `scale`), dynamische Container-Höhe, Zoom-Toolbar, Tastatur, Doppelklick 2× | Fit-to-View beim Laden; focal-point Zoom; kein Scroll-basiertes Pan → keine Scrollbalken; vollständige Eingabe: Maus, Rad, Touch, Tastatur, Buttons |
 | DRY-Utilities | `utils/formatting.ts` + `utils/errors.ts` + `EmptyState` | fmtDate, getErrorMessage und Leer-Zustand je einmalig zentralisiert |
+| Linting | ESLint v9 Flat Config + TS + React Hooks | Konsistente statische Analyse (`npm run lint`) im Frontend |
 
 ---
 
@@ -481,4 +500,6 @@ Demo-Submissions (Talentwettbewerb, Kandidaten: Anna, Ben, Clara):
 - Kein E-Mail-Versand (Passwort-Reset nur durch Admin möglich)
 - Keine Paginierung (bei sehr vielen Einträgen nachrüsten)
 - `scripts/build.sh` nur Unix/macOS — Windows: `cd frontend && npm run build`
+- Publikumswertung ist Best-Effort (Cookie-basiert); Inkognito/Cookie-Löschen ermöglicht erneute Stimmen
+- Deaktivieren der Publikumswertung löscht vorhandene Stimmen nicht (bei Reaktivierung zählen alte Stimmen mit)
 - Keine automatisierten Tests (Infrastruktur-Aufwand; manuelle Tests mit Dummy-Daten)

@@ -14,6 +14,9 @@
 # Standardmäßig wird /jurysystem als Basispfad verwendet:
 ./scripts/build.sh
 
+# Für Produktion auf meuse24.info:
+./scripts/build.sh /apps/jury
+
 # Oder mit eigenem Basispfad:
 ./scripts/build.sh /mein-pfad
 ```
@@ -24,15 +27,15 @@ Danach enthält `dist/` alles, was hochgeladen werden muss.
 
 ## 2. Auf den Server hochladen (FTP)
 
-Lade den **Inhalt** von `dist/` in den Unterordner `/jurysystem/` auf dem Server:
+Lade den **Inhalt** von `dist/` in deinen Ziel-Unterordner auf dem Server (z. B. `/apps/jury/`):
 
 ```
 dist/
-  index.html          → /jurysystem/index.html
-  assets/             → /jurysystem/assets/
-  .htaccess           → /jurysystem/.htaccess
-  api/                → /jurysystem/api/
-  data/               → /jurysystem/data/
+  index.html          → /apps/jury/index.html
+  assets/             → /apps/jury/assets/
+  .htaccess           → /apps/jury/.htaccess
+  api/                → /apps/jury/api/
+  data/               → /apps/jury/data/
 ```
 
 > **Wichtig:** Achte darauf, dass auch versteckte Dateien (.htaccess) übertragen werden.
@@ -46,7 +49,7 @@ Der `data/` Ordner muss für den Webserver-User beschreibbar sein:
 
 ```bash
 # Über SSH (falls verfügbar):
-chmod 770 /path/to/jurysystem/data/
+chmod 770 /path/to/apps/jury/data/
 ```
 
 Bei World4You kannst du die Rechte über den Dateimanager im CPanel setzen.
@@ -57,7 +60,7 @@ Bei World4You kannst du die Rechte über den Dateimanager im CPanel setzen.
 
 **Option A: SSH (empfohlen)**
 ```bash
-cd /path/to/jurysystem
+cd /path/to/apps/jury
 php api/seed.php
 # oder mit eigenen Daten:
 SEED_ADMIN_USER=myadmin SEED_ADMIN_PASSWORD=sicherespasswort php api/seed.php
@@ -70,7 +73,7 @@ Generiere die Startdaten **lokal** (auf deinem Rechner) und lade nur die JSON-Da
 php scripts/create_dummy_data.php
 # → schreibt data/users.json mit admin/admin123
 ```
-Lade `data/users.json` per FTP nach `/jurysystem/data/users.json` hoch.
+Lade `data/users.json` per FTP nach `/apps/jury/data/users.json` hoch.
 
 > **Wichtig:** Ändere das Passwort nach dem ersten Login sofort unter *Benutzer → Bearbeiten*.
 > Lade **niemals** ein ausführbares PHP-Script in den öffentlichen Webroot – es könnte von
@@ -80,8 +83,8 @@ Lade `data/users.json` per FTP nach `/jurysystem/data/users.json` hoch.
 
 ## 5. Ersten Login testen
 
-1. Öffne `https://deine-domain.at/jurysystem/`
-2. Melde dich mit `admin` / `changeme123` an (oder dein eigenes Passwort)
+1. Öffne `https://deine-domain.at/apps/jury/`
+2. Melde dich mit `admin` / `admin123` an (oder dein eigenes Passwort)
 3. **Sofort das Passwort ändern** unter Benutzer → Bearbeiten
 
 ---
@@ -90,7 +93,7 @@ Lade `data/users.json` per FTP nach `/jurysystem/data/users.json` hoch.
 
 Teste, dass JSON-Dateien nicht direkt abrufbar sind:
 ```bash
-curl -I https://deine-domain.at/jurysystem/data/users.json
+curl -I https://deine-domain.at/apps/jury/data/users.json
 # Muss: HTTP 403 Forbidden zurückgeben
 ```
 
@@ -111,6 +114,12 @@ npm run dev
 Frontend läuft auf http://localhost:5173/jurysystem/
 API-Calls werden automatisch an http://localhost:8000 weitergeleitet.
 
+Optional vor dem Build:
+```bash
+cd frontend
+npm run lint
+```
+
 ---
 
 ## Annahmen & Designentscheidungen
@@ -130,7 +139,7 @@ API-Calls werden automatisch an http://localhost:8000 weitergeleitet.
 ## Datei-Struktur auf dem Server
 
 ```
-/jurysystem/
+/apps/jury/
   .htaccess          ← Routing: SPA fallback + API dispatch + data/ deny
   index.html         ← SPA Entry
   assets/            ← Vite-compiled JS + CSS

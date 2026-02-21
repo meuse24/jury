@@ -24,15 +24,18 @@ Vollständige Client-Server-Webapp für Jury-Wertungen. Deployed auf Shared Host
 │   │   ├── Auth/         login.php, logout.php, me.php
 │   │   ├── Admin/        CRUD Users, Evaluations, Assignments, Publish, Submissions-Status
 │   │   ├── Jury/         eval list/detail, submission get/put, candidate_submission get/put
-│   │   ├── Public/       results.php (publish-gating, simple + candidates mode)
+│   │   ├── Public/       results.php, audience_info.php, audience_vote.php
 │   │   ├── Middleware/   session.php, rbac.php (requireAuth/requireRole, CSRF)
 │   │   ├── Model/        models.php (make_user, make_evaluation, make_candidate, make_category, make_submission)
-│   │   └── Repository/   JsonStore.php, repositories.php (UserRepo, EvalRepo, SubmissionRepo)
+│   │   └── Repository/   JsonStore.php, repositories.php (UserRepo, EvalRepo, SubmissionRepo, AudienceVoteRepo)
 │   └── .htaccess         RewriteBase /apps/jury/api/ → index.php
 ├── frontend/             React SPA
+│   ├── eslint.config.js  ESLint v9 Flat Config (TS + React Hooks)
 │   ├── src/
 │   │   ├── api/client.ts Typed API-Client (fetch + credentials)
 │   │   ├── hooks/useAuth.tsx AuthProvider + useAuth Hook
+│   │   ├── types/
+│   │   │   └── qrcode.d.ts Lokale Typen für `qrcode`
 │   │   ├── utils/
 │   │   │   ├── formatting.ts  fmtDate (de-AT Locale)
 │   │   │   └── errors.ts      getErrorMessage (ApiError → string)
@@ -43,12 +46,14 @@ Vollständige Client-Server-Webapp für Jury-Wertungen. Deployed auf Shared Host
 │   │       ├── WorkflowPage.tsx      Infografik-Seite (/hilfe/infografik): workflow.jpg mit transform-basiertem Pan & Zoom
 │   │       ├── PublicResultsPage.tsx Öffentliche Ergebnisse – animierte Enthüllung (simple + candidates)
 │   │       │                         Zeigt "X von Y Jury-Wertungen" wenn Abgaben fehlen
+│   │       ├── AudienceVotePage.tsx  Publikumswertung; Ergebnislink bei "geschlossen" und nach Stimmabgabe
 │   │       ├── admin/
 │   │       │   ├── AdminUsersPage.tsx
 │   │       │   ├── AdminEvalsPage.tsx       Freigabe-Button entfernt → nur in AdminAssignmentsPage
 │   │       │   ├── AdminEvalFormPage.tsx    Erstellen + Bearbeiten; Auto-Redirect zu Assignments
 │   │       │   └── AdminAssignmentsPage.tsx Jury & Status + Freigabe (zentral); bei fehlenden Abgaben:
-│   │       │                                Konsequenz auf Durchschnitt + Lösungshinweise (Abwählen / Frist)
+│   │       │                                Konsequenz auf Durchschnitt + Lösungshinweise (Abwählen / Frist);
+│   │       │                                zeigt Abstimmungszeitslot inkl. "abgelaufen" + Ergebnislink
 │   │       └── jury/
 │   │           ├── JuryDashboardPage.tsx
 │   │           └── JuryEvalPage.tsx        Bewertungsformular – Kandidaten-Tabs oder einfacher Modus
@@ -60,7 +65,8 @@ Vollständige Client-Server-Webapp für Jury-Wertungen. Deployed auf Shared Host
 │   ├── .htaccess         Deny all HTTP
 │   ├── users.json
 │   ├── evaluations.json
-│   └── submissions.json
+│   ├── submissions.json
+│   └── audience_votes.json
 ├── dist/                 Deployables (gitignored, wird per Build erzeugt)
 ├── scripts/
 │   ├── build.sh          Shell-Build (alternativ zu npm run build)
@@ -127,6 +133,8 @@ Vollständige Client-Server-Webapp für Jury-Wertungen. Deployed auf Shared Host
 | GET | `/api/jury/evaluations/:id/candidates/:cid/submission` | jury + assigned | Kandidaten-Submission lesen |
 | PUT | `/api/jury/evaluations/:id/candidates/:cid/submission` | jury + assigned + open | Kandidaten-Submission einreichen |
 | GET | `/api/public/evaluations/:id/results` | – | Öffentliche Ergebnisse (mode: simple\|candidates); liefert immer `total_jury_count` |
+| GET | `/api/public/evaluations/:id/audience` | – | Publikums-Status/Info (`upcoming/open/closed`) |
+| POST | `/api/public/evaluations/:id/audience/vote` | – | Publikumsstimme (einmalig pro Gerät) |
 
 ---
 
@@ -139,6 +147,7 @@ Vollständige Client-Server-Webapp für Jury-Wertungen. Deployed auf Shared Host
 | `/hilfe` | – | Hilfeseite (10 Abschnitte) |
 | `/hilfe/infografik` | – | Workflow-Infografik (workflow.jpg, Pan & Zoom) |
 | `/results/:id` | – | Öffentliche Ergebnisse |
+| `/audience/:id` | – | Publikumswertung |
 | `/admin/users` | admin | Benutzerverwaltung |
 | `/admin/evaluations` | admin | Wertungsübersicht |
 | `/admin/evaluations/new` | admin | Neue Wertung |
@@ -159,6 +168,11 @@ cd backend/api && php -S localhost:8000 index.php
 # Frontend (Terminal 2)
 cd frontend && npm run dev
 # → http://localhost:5173/jurysystem/
+```
+
+Optional vor Merge/Deploy:
+```bash
+cd frontend && npm run lint && npm run build
 ```
 
 ### Produktions-Build
@@ -202,6 +216,7 @@ Inhalt von `dist/` nach `/apps/jury/` uploaden. **Versteckte Dateien anzeigen** 
 | Ausstehend-Warnungen | Orange Warnblöcke mit namentlichen Links | Jury verpasst keine offenen Bewertungen |
 | Fehlende Abgaben | Konsequenz auf Durchschnitt erklären + 2 Lösungshinweise | Admin kann informiert entscheiden: Mitglied entfernen oder Frist verlängern |
 | total_jury_count | Immer in Public-Results-Response (simple + candidates) | Frontend zeigt "X von Y Wertungen" wenn Abgaben fehlen |
+| Publikum UX | Ergebnislink auf geschlossener Publikumsseite und auf "Danke für deine Stimme" | Nutzer gelangen ohne Umweg zur Ergebnisansicht |
 | Infografik | WorkflowPage mit workflow.jpg; CSS-Transform Pan & Zoom (translate + scale) | Dynamische Container-Höhe, Fit-to-View, Zoom-Toolbar (−/% /+/Einpassen), Doppelklick 2×, Tastatur (+/−/0/Pfeile), Mausrad focal-point, Pinch-Zoom, Drag-Pan; overflow-hidden ohne Scrollbalken |
 | DRY-Utilities | `utils/formatting.ts`, `utils/errors.ts`, `EmptyState` Komponente | fmtDate 3×, getErrorMessage 10×, EmptyState 2× → je 1× zentralisiert |
 
