@@ -355,7 +355,7 @@
 - Kandidaten-Modus: Publikum wählt einen Kandidaten.
 - Einfacher Modus: Punkte `0–X` (X konfigurierbar).
 - Ergebnisse: Publikum zählt als gleichrangiges Jury-Mitglied, Teilnehmerzahl wird angezeigt.
-- QR-Code wird im Admin-Formular über `api.qrserver.com` generiert (kann bei Bedarf lokal ersetzt werden).
+- QR-Code wird im Admin-Formular lokal im Frontend generiert (kein externer Dienst).
 
 ## Lokale Entwicklung
 

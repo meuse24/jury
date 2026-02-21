@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import * as QRCode from 'qrcode'
 import { useNavigate, useParams } from 'react-router-dom'
 import { adminEvals, Category, Candidate, EvalPayload } from '../../api/client'
 import Alert from '../../components/Alert'
@@ -42,6 +43,7 @@ export default function AdminEvalFormPage() {
   const [submitting, setSub]        = useState(false)
   const [copied, setCopied]         = useState(false)
   const [origin, setOrigin]         = useState('')
+  const [qrDataUrl, setQrDataUrl]   = useState('')
 
   useEffect(() => {
     if (!isEdit) return
@@ -85,6 +87,18 @@ export default function AdminEvalFormPage() {
       setCopied(false)
     }
   }
+
+  useEffect(() => {
+    let cancelled = false
+    if (!audienceEnabled || !audienceUrl) {
+      setQrDataUrl('')
+      return
+    }
+    QRCode.toDataURL(audienceUrl, { width: 180, margin: 1 })
+      .then(url => { if (!cancelled) setQrDataUrl(url) })
+      .catch(() => { if (!cancelled) setQrDataUrl('') })
+    return () => { cancelled = true }
+  }, [audienceEnabled, audienceUrl])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -282,11 +296,17 @@ export default function AdminEvalFormPage() {
                 </button>
               </div>
               <div className="flex items-center gap-4">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(audienceUrl)}`}
-                  alt="QR-Code Publikum"
-                  className="border rounded bg-white p-2"
-                />
+                {qrDataUrl ? (
+                  <img
+                    src={qrDataUrl}
+                    alt="QR-Code Publikum"
+                    className="border rounded bg-white p-2"
+                  />
+                ) : (
+                  <div className="w-[180px] h-[180px] flex items-center justify-center text-xs text-gray-500 border rounded bg-white">
+                    QR-Code wird erstellt…
+                  </div>
+                )}
                 <div className="text-xs text-gray-500">
                   QR-Code auf Plakaten oder Folien zeigen, damit das Publikum direkt abstimmen kann.
                 </div>
