@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { publicApi, AudienceInfo, ApiError } from '../api/client'
 import Spinner from '../components/Spinner'
 import Alert from '../components/Alert'
@@ -64,6 +64,8 @@ export default function AudienceVotePage() {
 
   const openAt = new Date(info.evaluation.submission_open_at * 1000).toLocaleString('de-AT')
   const closeAt = new Date(info.evaluation.submission_close_at * 1000).toLocaleString('de-AT')
+  const maxScore = info.audience_max_score ?? 10
+  const resultPath = `/results/${id ?? ''}`
 
   if (info.status !== 'open') {
     return (
@@ -76,6 +78,16 @@ export default function AudienceVotePage() {
         <div className="text-xs text-gray-400">
           Zeitraum: {openAt} – {closeAt}
         </div>
+        {info.status === 'closed' && (
+          <Link
+            to={resultPath}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex text-sm bg-indigo-700 hover:bg-indigo-800 text-white px-4 py-2 rounded font-medium transition-colors"
+          >
+            Zum Ergebnis ↗
+          </Link>
+        )}
       </div>
     )
   }
@@ -86,6 +98,14 @@ export default function AudienceVotePage() {
         <div className="text-6xl">✅</div>
         <h1 className="text-2xl font-bold">Danke für deine Stimme!</h1>
         <p className="text-gray-500 text-sm">Du kannst nur einmal abstimmen.</p>
+        <Link
+          to={resultPath}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex text-sm bg-indigo-700 hover:bg-indigo-800 text-white px-4 py-2 rounded font-medium transition-colors"
+        >
+          Zum Ergebnis ↗
+        </Link>
       </div>
     )
   }
@@ -133,14 +153,14 @@ export default function AudienceVotePage() {
             <input
               type="range"
               min={0}
-              max={info.audience_max_score}
+              max={maxScore}
               value={score}
               onChange={e => setScore(parseInt(e.target.value))}
               className="w-full accent-indigo-600"
             />
             <div className="flex items-center justify-between text-xs text-gray-400">
               <span>0</span>
-              <span>max. {info.audience_max_score}</span>
+              <span>max. {maxScore}</span>
             </div>
             <div className="text-center text-4xl font-black text-indigo-700">{score}</div>
           </div>

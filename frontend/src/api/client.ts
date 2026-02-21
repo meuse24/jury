@@ -142,8 +142,9 @@ export interface PublicResults {
   audience_participant_count?: number
   // simple mode
   results?: AggregatedResult
-  // candidates mode
+  // both modes
   total_jury_count?: number
+  // candidates mode
   candidates?: CandidateResult[]
 }
 
@@ -157,7 +158,7 @@ export interface AudienceInfo {
   }
   mode: 'simple' | 'candidates'
   status: 'upcoming' | 'open' | 'closed'
-  audience_max_score: number
+  audience_max_score: number | null
   candidates: Candidate[]
   already_voted: boolean
   audience_participants: number

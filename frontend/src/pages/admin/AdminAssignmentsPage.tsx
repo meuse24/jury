@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { adminEvals, adminUsers, Evaluation, User, JurySubmissionStatus } from '../../api/client'
 import Alert from '../../components/Alert'
 import Spinner from '../../components/Spinner'
 import { fmtDate } from '../../utils/formatting'
 import { getErrorMessage } from '../../utils/errors'
+import * as QRCode from 'qrcode'
 
 export default function AdminAssignmentsPage() {
   const { id } = useParams<{ id: string }>()
@@ -21,8 +22,11 @@ export default function AdminAssignmentsPage() {
   const [saving, setSaving]               = useState(false)
   const [publishing, setPublishing]       = useState(false)
   const [pendingRemove, setPendingRemove] = useState<Set<string>>(new Set())
+  const [origin, setOrigin]               = useState('')
+  const [qrDataUrl, setQrDataUrl]         = useState('')
+  const [copied, setCopied]               = useState(false)
 
-  const loadAll = async () => {
+  const loadAll = useCallback(async () => {
     const [er, ur] = await Promise.all([adminEvals.get(id!), adminUsers.list()])
     const juryUsers = ur.users.filter(u => u.role === 'jury')
     setEv(er.evaluation)
@@ -39,13 +43,17 @@ export default function AdminAssignmentsPage() {
       setStatuses({})
       setHasCandidates(false)
     }
-  }
+  }, [id])
 
   useEffect(() => {
     loadAll()
       .catch(() => setError('Fehler beim Laden.'))
       .finally(() => setLoading(false))
-  }, [id])
+  }, [loadAll])
+
+  useEffect(() => {
+    setOrigin(window.location.origin)
+  }, [])
 
   const toggle = (uid: string) => {
     setSelected(s => {
@@ -124,8 +132,6 @@ export default function AdminAssignmentsPage() {
     }
   }
 
-  if (loading) return <Spinner />
-
   const assignedCount  = selected.size
   const submittedCount = hasCandidates
     ? [...selected].filter(uid => {
@@ -137,6 +143,43 @@ export default function AdminAssignmentsPage() {
   const allSubmitted   = assignedCount > 0 && submittedCount === assignedCount
   const isPublished    = ev?.results_is_published ?? false
   const audienceEnabled = ev?.audience_enabled ?? false
+  const nowTs = Math.floor(Date.now() / 1000)
+  const slotOpenAt = ev?.submission_open_at ?? null
+  const slotCloseAt = ev?.submission_close_at ?? null
+  const slotStatus = !slotOpenAt || !slotCloseAt
+    ? 'unknown'
+    : nowTs < slotOpenAt
+      ? 'upcoming'
+      : nowTs > slotCloseAt
+        ? 'closed'
+        : 'open'
+  const resultPath = `/results/${id ?? ''}`
+
+  const basePath = import.meta.env.VITE_BASE_PATH || '/jurysystem'
+  const audienceUrl = origin ? `${origin}${basePath}/audience/${id}` : ''
+
+  useEffect(() => {
+    let cancelled = false
+    if (!audienceEnabled || !audienceUrl) {
+      setQrDataUrl('')
+      return
+    }
+    QRCode.toDataURL(audienceUrl, { width: 180, margin: 1 })
+      .then((url: string) => { if (!cancelled) setQrDataUrl(url) })
+      .catch(() => { if (!cancelled) setQrDataUrl('') })
+    return () => { cancelled = true }
+  }, [audienceEnabled, audienceUrl])
+
+  const copyAudienceUrl = async () => {
+    if (!audienceUrl) return
+    try {
+      await navigator.clipboard.writeText(audienceUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      setCopied(false)
+    }
+  }
 
   // Members with missing or incomplete submissions
   const pendingMembers = [...selected].filter(uid => {
@@ -146,6 +189,8 @@ export default function AdminAssignmentsPage() {
     }
     return !statuses[uid]?.has_submission
   })
+
+  if (loading) return <Spinner />
 
   return (
     <div className="max-w-xl w-full space-y-6">
@@ -183,6 +228,87 @@ export default function AdminAssignmentsPage() {
           </div>
         </div>
       </div>
+
+      <div className="bg-white shadow rounded-lg p-4 space-y-2">
+        <div className="text-sm font-medium text-gray-700">Abstimmungszeitslot</div>
+        {slotOpenAt && slotCloseAt ? (
+          <>
+            <div className="text-sm text-gray-600">
+              {fmtDate(slotOpenAt)} - {fmtDate(slotCloseAt)}
+            </div>
+            {slotStatus === 'closed' ? (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-amber-700">Der Abstimmungszeitslot ist abgelaufen.</p>
+                <Link
+                  to={resultPath}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex text-sm bg-indigo-700 hover:bg-indigo-800 text-white px-3 py-1.5 rounded font-medium transition-colors"
+                >
+                  Zum Ergebnis ↗
+                </Link>
+                {!isPublished && (
+                  <p className="text-xs text-gray-500">
+                    Falls noch nicht freigegeben, zeigt die Ergebnisseite einen Hinweis an.
+                  </p>
+                )}
+              </div>
+            ) : slotStatus === 'upcoming' ? (
+              <p className="text-sm text-gray-500">Die Abstimmung hat noch nicht begonnen.</p>
+            ) : (
+              <p className="text-sm text-green-700">Die Abstimmung ist aktuell geöffnet.</p>
+            )}
+          </>
+        ) : (
+          <p className="text-sm text-gray-500">Kein Zeitslot verfügbar.</p>
+        )}
+      </div>
+
+      {audienceEnabled && (
+        <div className="bg-white shadow rounded-lg p-5 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <div className="text-sm font-medium">Publikumswertung</div>
+              <div className="text-xs text-gray-500">
+                Link/QR-Code fürs Publikum
+                {ev?.audience_participant_count !== undefined && (
+                  <span> · Teilnehmer: {ev.audience_participant_count}</span>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={copyAudienceUrl}
+              className="text-xs bg-indigo-700 text-white px-3 py-1.5 rounded"
+            >
+              {copied ? 'Kopiert' : 'Link kopieren'}
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={audienceUrl}
+              readOnly
+              className="flex-1 border rounded px-2 py-1 text-xs bg-white"
+            />
+          </div>
+          <div className="flex items-center gap-4">
+            {qrDataUrl ? (
+              <img
+                src={qrDataUrl}
+                alt="QR-Code Publikum"
+                className="border rounded bg-white p-2"
+              />
+            ) : (
+              <div className="w-[180px] h-[180px] flex items-center justify-center text-xs text-gray-500 border rounded bg-white">
+                QR-Code wird erstellt…
+              </div>
+            )}
+            <div className="text-xs text-gray-500">
+              QR-Code auf Plakaten oder Folien zeigen, damit das Publikum direkt abstimmen kann.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Jury-Mitglieder */}
       <div className="bg-white shadow rounded-lg divide-y">

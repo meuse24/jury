@@ -60,7 +60,7 @@ export default function AdminEvalFormPage() {
       setAudienceMaxScore(ev.audience_max_score ?? 10)
     }).catch(() => setError('Wertung nicht gefunden.'))
     .finally(() => setLoading(false))
-  }, [id])
+  }, [id, isEdit])
 
   useEffect(() => {
     setOrigin(window.location.origin)
@@ -95,7 +95,7 @@ export default function AdminEvalFormPage() {
       return
     }
     QRCode.toDataURL(audienceUrl, { width: 180, margin: 1 })
-      .then(url => { if (!cancelled) setQrDataUrl(url) })
+      .then((url: string) => { if (!cancelled) setQrDataUrl(url) })
       .catch(() => { if (!cancelled) setQrDataUrl('') })
     return () => { cancelled = true }
   }, [audienceEnabled, audienceUrl])
@@ -275,6 +275,7 @@ export default function AdminEvalFormPage() {
           {audienceEnabled && candidates.length > 0 && (
             <p className="text-xs text-gray-500">
               Im Kandidaten-Modus wählt das Publikum nur einen Kandidaten.
+              Der Stimmenanteil wird linear auf die Jury-Gesamtpunkte skaliert (100% = volle Punkte).
             </p>
           )}
 

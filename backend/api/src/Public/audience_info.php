@@ -21,6 +21,7 @@ $deviceId = get_or_create_audience_device_id();
 $already  = audience_vote_repo()->findByEvaluationAndDevice($id, $deviceId) !== null;
 
 $hasCandidates = count($eval['candidates'] ?? []) > 0;
+$audienceMax = $hasCandidates ? null : ($eval['audience_max_score'] ?? 10);
 
 json_response([
     'evaluation' => [
@@ -32,7 +33,7 @@ json_response([
     ],
     'mode'                  => $hasCandidates ? 'candidates' : 'simple',
     'status'                => $status,
-    'audience_max_score'    => $eval['audience_max_score'] ?? 10,
+    'audience_max_score'    => $audienceMax,
     'candidates'            => $hasCandidates ? $eval['candidates'] : [],
     'already_voted'         => $already,
     'audience_participants' => audience_vote_repo()->countByEvaluation($id),

@@ -158,9 +158,11 @@ class JsonSubmissionRepository implements SubmissionRepository
 // ===================================================================
 interface AudienceVoteRepository
 {
+    public function findAll(): array;
     public function findByEvaluation(string $evaluationId): array;
     public function findByEvaluationAndDevice(string $evaluationId, string $deviceId): ?array;
     public function create(array $vote): array;
+    public function createOnce(string $evaluationId, string $deviceId, array $vote): ?array;
     public function countByEvaluation(string $evaluationId): int;
 }
 
@@ -170,6 +172,11 @@ class JsonAudienceVoteRepository implements AudienceVoteRepository
     private JsonStore $store;
 
     public function __construct(JsonStore $store) { $this->store = $store; }
+
+    public function findAll(): array
+    {
+        return $this->store->readAll(self::STORE);
+    }
 
     public function findByEvaluation(string $evaluationId): array
     {
@@ -188,6 +195,21 @@ class JsonAudienceVoteRepository implements AudienceVoteRepository
     public function create(array $vote): array
     {
         return $this->store->insert(self::STORE, $vote);
+    }
+
+    public function createOnce(string $evaluationId, string $deviceId, array $vote): ?array
+    {
+        return $this->store->withExclusiveLock(self::STORE, function () use ($evaluationId, $deviceId, $vote) {
+            $all = $this->store->readAll(self::STORE);
+            foreach ($all as $v) {
+                if ($v['evaluation_id'] === $evaluationId && $v['device_id'] === $deviceId) {
+                    return null;
+                }
+            }
+            $all[] = $vote;
+            $this->store->writeAll(self::STORE, $all);
+            return $vote;
+        });
     }
 
     public function countByEvaluation(string $evaluationId): int

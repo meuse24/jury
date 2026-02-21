@@ -17,7 +17,7 @@ $audienceEnabled = $eval['audience_enabled'] ?? false;
 $audienceVotes   = $audienceEnabled ? audience_vote_repo()->findByEvaluation($id) : [];
 $audienceCount   = count($audienceVotes);
 $audienceHasVotes = $audienceEnabled && $audienceCount > 0;
-$totalJuryCount  = count($eval['jury_assignments'] ?? []) + ($audienceEnabled ? 1 : 0);
+$totalJuryCount  = count($eval['jury_assignments'] ?? []) + ($audienceHasVotes ? 1 : 0);
 $totalMaxPerEntry = array_sum(array_column($eval['categories'], 'max_score'));
 
 // ---- Helper: aggregate scores per category ----

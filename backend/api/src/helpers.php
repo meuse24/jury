@@ -97,7 +97,7 @@ function get_or_create_audience_device_id(): string
         'path'     => $path,
         'secure'   => $secure,
         'httponly' => true,
-        'samesite' => 'Lax',
+        'samesite' => 'Strict',
     ]);
     $_COOKIE[$cookieName] = $id;
     return $id;

@@ -12,7 +12,7 @@ export default function HomePage() {
     if (!user) { nav('/login', { replace: true }); return }
     if (user.role === 'admin') { nav('/admin/evaluations', { replace: true }); return }
     nav('/jury', { replace: true })
-  }, [user, loading])
+  }, [user, loading, nav])
 
   return <Spinner />
 }

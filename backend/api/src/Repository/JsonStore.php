@@ -24,6 +24,36 @@ class JsonStore
         return $this->dir . '/' . $name . '.json';
     }
 
+    private function lockPath(string $name): string
+    {
+        if (!preg_match('/^[a-zA-Z0-9_\-]+$/', $name)) {
+            throw new \InvalidArgumentException("Invalid store name: $name");
+        }
+        return $this->dir . '/.' . $name . '.lock';
+    }
+
+    /**
+     * Execute a callback while holding an exclusive lock for a store.
+     */
+    public function withExclusiveLock(string $name, callable $fn): mixed
+    {
+        $lockFile = $this->lockPath($name);
+        $fp = fopen($lockFile, 'c');
+        if (!$fp) {
+            throw new \RuntimeException("Cannot open lock file for $name.");
+        }
+        if (!flock($fp, LOCK_EX)) {
+            fclose($fp);
+            throw new \RuntimeException("Cannot acquire lock for $name.");
+        }
+        try {
+            return $fn();
+        } finally {
+            flock($fp, LOCK_UN);
+            fclose($fp);
+        }
+    }
+
     /**
      * Read all records from a collection file.
      * Returns an array of records (keyed by 'id').
@@ -58,6 +88,25 @@ class JsonStore
         $tmp  = $dir . '/.' . $name . '_' . uniqid('', true) . '.tmp';
 
         $json = json_encode($records, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        // Windows: rename over existing file often fails due to file locks.
+        // Use direct write with exclusive lock instead.
+        if (PHP_OS_FAMILY === 'Windows') {
+            $fp = fopen($file, 'c+');
+            if (!$fp) {
+                throw new \RuntimeException("Cannot open $file for writing.");
+            }
+            if (!flock($fp, LOCK_EX)) {
+                fclose($fp);
+                throw new \RuntimeException("Cannot acquire lock for $file.");
+            }
+            ftruncate($fp, 0);
+            fwrite($fp, $json);
+            fflush($fp);
+            flock($fp, LOCK_UN);
+            fclose($fp);
+            return;
+        }
 
         $fp = fopen($tmp, 'w');
         if (!$fp) {

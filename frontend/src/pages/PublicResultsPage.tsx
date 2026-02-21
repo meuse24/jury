@@ -265,10 +265,6 @@ function CandidatesReveal({ data }: { data: PublicResults }) {
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
 
   const currentCand: CandidateResult | undefined = revealOrder[revealIdx]
-  const maxPerEntry = currentCand?.results.max_per_entry ?? 1
-  const avgPct      = currentCand
-    ? Math.min(100, ((currentCand.results.total_average ?? 0) / maxPerEntry) * 100)
-    : 0
 
   const animateBar = (targetPct: number) => {
     setBarWidth(0); setScoreVis(false)

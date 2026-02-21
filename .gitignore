@@ -13,6 +13,9 @@ frontend/dist/
 
 # Data files (contain user data, not in VCS)
 data/*.json
+data/*.tmp
+data/*.lock
+.npm-cache/
 
 # OS
 .DS_Store

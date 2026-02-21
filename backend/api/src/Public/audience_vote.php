@@ -22,9 +22,6 @@ if ($now > $closeAt) {
 
 $deviceId = get_or_create_audience_device_id();
 $voteRepo = audience_vote_repo();
-if ($voteRepo->findByEvaluationAndDevice($id, $deviceId) !== null) {
-    json_error('ALREADY_VOTED', 'You have already voted.', 409);
-}
 
 $body = request_body();
 $hasCandidates = count($eval['candidates'] ?? []) > 0;
@@ -58,7 +55,10 @@ $vote = [
     'submitted_at'  => now_ts(),
 ];
 
-$voteRepo->create($vote);
+$created = $voteRepo->createOnce($id, $deviceId, $vote);
+if ($created === null) {
+    json_error('ALREADY_VOTED', 'You have already voted.', 409);
+}
 
 json_response([
     'message' => 'Vote recorded.',

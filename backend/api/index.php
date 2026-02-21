@@ -57,6 +57,15 @@ try {
     dispatch($method, $route);
 } catch (Throwable $e) {
     error_log('[JurySystem] ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+    if (defined('APP_DEBUG') && APP_DEBUG) {
+        json_error('INTERNAL_ERROR', $e->getMessage(), 500, [
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString(),
+            'method' => $method ?? null,
+            'route' => $route ?? null,
+        ]);
+    }
     json_error('INTERNAL_ERROR', 'An unexpected error occurred.', 500);
 }
 
