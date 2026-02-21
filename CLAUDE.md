@@ -40,7 +40,7 @@ Vollständige Client-Server-Webapp für Jury-Wertungen. Deployed auf Shared Host
 │   │   └── pages/
 │   │       ├── LoginPage.tsx
 │   │       ├── HelpPage.tsx          10 Abschnitte: Workflow + Best Practices (Admin + Jury)
-│   │       ├── WorkflowPage.tsx      Infografik-Seite (/hilfe/infografik): workflow.jpg mit Pan & Zoom
+│   │       ├── WorkflowPage.tsx      Infografik-Seite (/hilfe/infografik): workflow.jpg mit transform-basiertem Pan & Zoom
 │   │       ├── PublicResultsPage.tsx Öffentliche Ergebnisse – animierte Enthüllung (simple + candidates)
 │   │       │                         Zeigt "X von Y Jury-Wertungen" wenn Abgaben fehlen
 │   │       ├── admin/
@@ -202,7 +202,7 @@ Inhalt von `dist/` nach `/apps/jury/` uploaden. **Versteckte Dateien anzeigen** 
 | Ausstehend-Warnungen | Orange Warnblöcke mit namentlichen Links | Jury verpasst keine offenen Bewertungen |
 | Fehlende Abgaben | Konsequenz auf Durchschnitt erklären + 2 Lösungshinweise | Admin kann informiert entscheiden: Mitglied entfernen oder Frist verlängern |
 | total_jury_count | Immer in Public-Results-Response (simple + candidates) | Frontend zeigt "X von Y Wertungen" wenn Abgaben fehlen |
-| Infografik | WorkflowPage mit workflow.jpg; Drag-Pan + Mausrad-Zoom + Pinch-Zoom | Responsive ohne feste Bildgröße; zoomRef verhindert stale-closure bei Mausrad |
+| Infografik | WorkflowPage mit workflow.jpg; CSS-Transform Pan & Zoom (translate + scale) | Dynamische Container-Höhe, Fit-to-View, Zoom-Toolbar (−/% /+/Einpassen), Doppelklick 2×, Tastatur (+/−/0/Pfeile), Mausrad focal-point, Pinch-Zoom, Drag-Pan; overflow-hidden ohne Scrollbalken |
 | DRY-Utilities | `utils/formatting.ts`, `utils/errors.ts`, `EmptyState` Komponente | fmtDate 3×, getErrorMessage 10×, EmptyState 2× → je 1× zentralisiert |
 
 ---

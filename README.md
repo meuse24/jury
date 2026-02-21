@@ -53,10 +53,16 @@
 
 ### Hilfe & Infografik
 - Hilfeseite mit 10 Abschnitten: Workflow + Best Practices für Admin und Jury
-- Infografik-Seite (`/hilfe/infografik`): workflow.jpg mit Pan & Zoom
-  - Mausrad zum Zoomen (0,5× – 4×, Zoom um Cursorpunkt)
+- Infografik-Seite (`/hilfe/infografik`): workflow.jpg mit transform-basiertem Pan & Zoom
+  - Container füllt verfügbare Viewport-Höhe dynamisch aus (kein festes `maxHeight`)
+  - Bild startet in Fit-to-View (zentriert, vollständig sichtbar)
+  - Zoom-Toolbar: −, Prozentanzeige, +, Einpassen-Button
+  - Mausrad-Zoom am Cursorpunkt (0,1× – 6×)
+  - Doppelklick = 2× Zoom an Klickposition
   - Klicken & Ziehen zum Verschieben
-  - Zwei-Finger-Pinch auf Touch-Geräten
+  - Tastatursteuerung: +/− Zoom, 0 = Einpassen, Pfeiltasten = Pan
+  - Zwei-Finger-Pinch auf Touch-Geräten, Ein-Finger-Drag = Pan
+  - CSS `transform: translate() scale()` statt Scroll-basiert — keine Scrollbalken
 
 ---
 
@@ -164,7 +170,7 @@
 │   │   └── pages/
 │   │       ├── LoginPage.tsx
 │   │       ├── HelpPage.tsx           10 Abschnitte: Workflow + Best Practices
-│   │       ├── WorkflowPage.tsx       Infografik mit Pan & Zoom (/hilfe/infografik)
+│   │       ├── WorkflowPage.tsx       Infografik mit transform-basiertem Pan & Zoom (/hilfe/infografik)
 │   │       ├── PublicResultsPage.tsx  Animierte Ergebnisseite; "X von Y Wertungen"
 │   │       ├── admin/
 │   │       │   ├── AdminUsersPage.tsx       Benutzerverwaltung
@@ -426,7 +432,7 @@ Demo-Submissions (Talentwettbewerb, Kandidaten: Anna, Ben, Clara):
 | Workflow-Führung | CTAs, Warnungen, Auto-Redirect | Fehlbedienung und vergessene Schritte minimieren |
 | Fehlende Abgaben | Konsequenz erklären + Lösungshinweise (Abwählen / Frist verlängern) | Admin kann informiert entscheiden statt blind freigeben |
 | total_jury_count | In Public-Results-Response immer enthalten (simple + candidates) | Zuschauer sehen Vollständigkeit der Wertungsbasis |
-| Infografik Pan+Zoom | zoomRef + nativer non-passive touchmove Listener | Kein stale-closure beim Mausrad; Pinch zuverlässig auf iOS |
+| Infografik Pan+Zoom | CSS-Transform (`translate` + `scale`), dynamische Container-Höhe, Zoom-Toolbar, Tastatur, Doppelklick 2× | Fit-to-View beim Laden; focal-point Zoom; kein Scroll-basiertes Pan → keine Scrollbalken; vollständige Eingabe: Maus, Rad, Touch, Tastatur, Buttons |
 | DRY-Utilities | `utils/formatting.ts` + `utils/errors.ts` + `EmptyState` | fmtDate, getErrorMessage und Leer-Zustand je einmalig zentralisiert |
 
 ---
