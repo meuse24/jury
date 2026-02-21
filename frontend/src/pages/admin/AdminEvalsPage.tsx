@@ -88,6 +88,11 @@ export default function AdminEvalsPage() {
                         {ev.candidates.length} Kandidaten
                       </span>
                     )}
+                    {ev.audience_enabled && (
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-100 text-emerald-700">
+                        Publikum
+                      </span>
+                    )}
                   </div>
                   {ev.description && (
                     <p className="text-sm text-gray-500 mt-1 line-clamp-2">{ev.description}</p>

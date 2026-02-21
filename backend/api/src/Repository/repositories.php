@@ -154,8 +154,52 @@ class JsonSubmissionRepository implements SubmissionRepository
 }
 
 // ===================================================================
+// AudienceVoteRepository
+// ===================================================================
+interface AudienceVoteRepository
+{
+    public function findByEvaluation(string $evaluationId): array;
+    public function findByEvaluationAndDevice(string $evaluationId, string $deviceId): ?array;
+    public function create(array $vote): array;
+    public function countByEvaluation(string $evaluationId): int;
+}
+
+class JsonAudienceVoteRepository implements AudienceVoteRepository
+{
+    private const STORE = 'audience_votes';
+    private JsonStore $store;
+
+    public function __construct(JsonStore $store) { $this->store = $store; }
+
+    public function findByEvaluation(string $evaluationId): array
+    {
+        return $this->store->findWhere(self::STORE, fn($v) => $v['evaluation_id'] === $evaluationId);
+    }
+
+    public function findByEvaluationAndDevice(string $evaluationId, string $deviceId): ?array
+    {
+        $results = $this->store->findWhere(
+            self::STORE,
+            fn($v) => $v['evaluation_id'] === $evaluationId && $v['device_id'] === $deviceId
+        );
+        return $results[0] ?? null;
+    }
+
+    public function create(array $vote): array
+    {
+        return $this->store->insert(self::STORE, $vote);
+    }
+
+    public function countByEvaluation(string $evaluationId): int
+    {
+        return count($this->findByEvaluation($evaluationId));
+    }
+}
+
+// ===================================================================
 // Factory — returns repository instances
 // ===================================================================
 function user_repo(): UserRepository           { return new JsonUserRepository(get_store()); }
 function eval_repo(): EvaluationRepository     { return new JsonEvaluationRepository(get_store()); }
 function submission_repo(): SubmissionRepository { return new JsonSubmissionRepository(get_store()); }
+function audience_vote_repo(): AudienceVoteRepository { return new JsonAudienceVoteRepository(get_store()); }

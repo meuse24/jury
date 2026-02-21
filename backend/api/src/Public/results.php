@@ -13,6 +13,12 @@ if ($eval === null || !$eval['results_is_published'] || $now < $eval['results_pu
 
 $submissions = submission_repo()->findByEvaluation($id);
 $candidates  = $eval['candidates'] ?? [];
+$audienceEnabled = $eval['audience_enabled'] ?? false;
+$audienceVotes   = $audienceEnabled ? audience_vote_repo()->findByEvaluation($id) : [];
+$audienceCount   = count($audienceVotes);
+$audienceHasVotes = $audienceEnabled && $audienceCount > 0;
+$totalJuryCount  = count($eval['jury_assignments'] ?? []) + ($audienceEnabled ? 1 : 0);
+$totalMaxPerEntry = array_sum(array_column($eval['categories'], 'max_score'));
 
 // ---- Helper: aggregate scores per category ----
 function aggregate_scores(array $submissions, array $categories): array
@@ -32,7 +38,7 @@ function aggregate_scores(array $submissions, array $categories): array
     $categoryResults = [];
     $totalSum = 0;
     foreach ($categories as $cat) {
-        $sum = $totals[$cat['id']];
+        $sum = round($totals[$cat['id']], 2);
         $avg = $count > 0 ? round($sum / $count, 2) : null;
         $categoryResults[] = [
             'id'        => $cat['id'],
@@ -57,6 +63,21 @@ function aggregate_scores(array $submissions, array $categories): array
     ];
 }
 
+function audience_scores_for_categories(float $totalScore, array $categories): array
+{
+    $totalMax = array_sum(array_column($categories, 'max_score'));
+    if ($totalMax <= 0) return [];
+    $scores = [];
+    foreach ($categories as $cat) {
+        $ratio = $cat['max_score'] / $totalMax;
+        $scores[] = [
+            'category_id' => $cat['id'],
+            'score'       => round($totalScore * $ratio, 2),
+        ];
+    }
+    return $scores;
+}
+
 $evalInfo = [
     'id'          => $eval['id'],
     'title'       => $eval['title'],
@@ -66,12 +87,25 @@ $evalInfo = [
 
 // ---- With candidates: per-candidate aggregation ----
 if (count($candidates) > 0) {
+    $totalVotes = $audienceHasVotes ? count($audienceVotes) : 0;
+
     $candidateResults = [];
     foreach ($candidates as $candidate) {
         $candidateSubs = array_values(array_filter(
             $submissions,
             fn($s) => ($s['candidate_id'] ?? null) === $candidate['id']
         ));
+        if ($audienceHasVotes) {
+            $votesForCandidate = count(array_filter(
+                $audienceVotes,
+                fn($v) => ($v['candidate_id'] ?? null) === $candidate['id']
+            ));
+            $audScore = $totalVotes > 0 ? ($votesForCandidate / $totalVotes) * $totalMaxPerEntry : 0;
+            $candidateSubs[] = [
+                'scores'       => audience_scores_for_categories($audScore, $eval['categories']),
+                'candidate_id' => $candidate['id'],
+            ];
+        }
         $agg = aggregate_scores($candidateSubs, $eval['categories']);
         $candidateResults[] = [
             'id'          => $candidate['id'],
@@ -92,19 +126,37 @@ if (count($candidates) > 0) {
     }
     unset($cr);
 
-    json_response([
+    $response = [
         'evaluation'       => $evalInfo,
         'mode'             => 'candidates',
-        'total_jury_count' => count($eval['jury_assignments'] ?? []),
+        'total_jury_count' => $totalJuryCount,
         'candidates'       => $candidateResults,
-    ]);
+    ];
+    if ($audienceEnabled) {
+        $response['audience_participant_count'] = $audienceCount;
+    }
+    json_response($response);
 }
 
 // ---- Without candidates: simple aggregation (backward compat) ----
-$agg = aggregate_scores($submissions, $eval['categories']);
-json_response([
+$subsForAgg = $submissions;
+if ($audienceHasVotes) {
+    $sumScores = array_sum(array_map(fn($v) => $v['score'] ?? 0, $audienceVotes));
+    $avgScore  = $audienceCount > 0 ? ($sumScores / $audienceCount) : 0;
+    $audMax    = $eval['audience_max_score'] ?? 10;
+    $normalized = $audMax > 0 ? ($avgScore / $audMax) * $totalMaxPerEntry : 0;
+    $subsForAgg[] = [
+        'scores' => audience_scores_for_categories($normalized, $eval['categories']),
+    ];
+}
+$agg = aggregate_scores($subsForAgg, $eval['categories']);
+$response = [
     'evaluation'       => $evalInfo,
     'mode'             => 'simple',
-    'total_jury_count' => count($eval['jury_assignments'] ?? []),
+    'total_jury_count' => $totalJuryCount,
     'results'          => $agg,
-]);
+];
+if ($audienceEnabled) {
+    $response['audience_participant_count'] = $audienceCount;
+}
+json_response($response);

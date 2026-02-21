@@ -36,6 +36,17 @@ if ($closeAt <= $openAt) {
     json_error('INVALID_WINDOW', 'submission_close_at must be after submission_open_at.', 422);
 }
 
+// Audience settings
+if (array_key_exists('audience_enabled', $body)) {
+    $changes['audience_enabled'] = (bool)$body['audience_enabled'];
+}
+if (array_key_exists('audience_max_score', $body)) {
+    if (!is_int($body['audience_max_score']) || $body['audience_max_score'] < 1) {
+        json_error('INVALID_AUDIENCE_MAX', 'audience_max_score must be a positive integer.', 422);
+    }
+    $changes['audience_max_score'] = $body['audience_max_score'];
+}
+
 if (array_key_exists('candidates', $body)) {
     $candidatesRaw = $body['candidates'];
     if (!is_array($candidatesRaw)) {
@@ -69,6 +80,15 @@ if (array_key_exists('categories', $body)) {
             : make_category($catName, $cat['description'] ?? '', $maxScore);
     }
     $changes['categories'] = $categories;
+}
+
+// Validate audience settings with final candidate state (simple vs candidates)
+$audienceEnabled = $changes['audience_enabled'] ?? ($existing['audience_enabled'] ?? false);
+$audienceMax     = $changes['audience_max_score'] ?? ($existing['audience_max_score'] ?? 10);
+if ($audienceEnabled) {
+    if (!is_int($audienceMax) || $audienceMax < 1) {
+        json_error('INVALID_AUDIENCE_MAX', 'audience_max_score must be a positive integer.', 422);
+    }
 }
 
 if (empty($changes)) {

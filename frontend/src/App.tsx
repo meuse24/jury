@@ -8,6 +8,7 @@ import LoginPage           from './pages/LoginPage'
 import HelpPage            from './pages/HelpPage'
 import WorkflowPage        from './pages/WorkflowPage'
 import PublicResultsPage   from './pages/PublicResultsPage'
+import AudienceVotePage    from './pages/AudienceVotePage'
 import AdminUsersPage      from './pages/admin/AdminUsersPage'
 import AdminEvalsPage      from './pages/admin/AdminEvalsPage'
 import AdminEvalFormPage   from './pages/admin/AdminEvalFormPage'
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="/hilfe"            element={<HelpPage />} />
           <Route path="/hilfe/infografik" element={<WorkflowPage />} />
           <Route path="/results/:id"      element={<PublicResultsPage />} />
+          <Route path="/audience/:id"     element={<AudienceVotePage />} />
 
           {/* Admin */}
           <Route path="/admin/users" element={

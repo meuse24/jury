@@ -26,6 +26,7 @@ export default function AdminEvalFormPage() {
   const { id } = useParams<{ id: string }>()
   const isEdit  = id !== undefined && id !== 'new'
   const nav     = useNavigate()
+  const basePath = import.meta.env.VITE_BASE_PATH || '/jurysystem'
 
   const [loading, setLoading]       = useState(isEdit)
   const [error, setError]           = useState('')
@@ -36,7 +37,11 @@ export default function AdminEvalFormPage() {
   const [pubAt, setPubAt]           = useState('')
   const [categories, setCategories] = useState<(Omit<Category,'id'> & {id?:string})[]>([emptyCategory()])
   const [candidates, setCandidates] = useState<(Omit<Candidate,'id'> & {id?:string})[]>([])
+  const [audienceEnabled, setAudienceEnabled] = useState(false)
+  const [audienceMaxScore, setAudienceMaxScore] = useState(10)
   const [submitting, setSub]        = useState(false)
+  const [copied, setCopied]         = useState(false)
+  const [origin, setOrigin]         = useState('')
 
   useEffect(() => {
     if (!isEdit) return
@@ -49,9 +54,15 @@ export default function AdminEvalFormPage() {
       setPubAt(tsToInput(ev.results_publish_at))
       setCategories(ev.categories)
       setCandidates(ev.candidates ?? [])
+      setAudienceEnabled(ev.audience_enabled ?? false)
+      setAudienceMaxScore(ev.audience_max_score ?? 10)
     }).catch(() => setError('Wertung nicht gefunden.'))
     .finally(() => setLoading(false))
   }, [id])
+
+  useEffect(() => {
+    setOrigin(window.location.origin)
+  }, [])
 
   const addCategory    = () => setCategories(c => [...c, emptyCategory()])
   const removeCategory = (i: number) => setCategories(c => c.filter((_, j) => j !== i))
@@ -62,6 +73,18 @@ export default function AdminEvalFormPage() {
   const removeCandidate = (i: number) => setCandidates(c => c.filter((_, j) => j !== i))
   const updateCandidate = (i: number, field: string, value: string) =>
     setCandidates(c => c.map((cand, j) => j === i ? { ...cand, [field]: value } : cand))
+
+  const audienceUrl = origin && isEdit ? `${origin}${basePath}/audience/${id}` : ''
+  const copyAudienceUrl = async () => {
+    if (!audienceUrl) return
+    try {
+      await navigator.clipboard.writeText(audienceUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      setCopied(false)
+    }
+  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -75,6 +98,8 @@ export default function AdminEvalFormPage() {
         results_publish_at:  inputToTs(pubAt),
         categories: categories.map(c => ({ ...c, max_score: Number(c.max_score) })),
         candidates: candidates.length > 0 ? candidates : [],
+        audience_enabled: audienceEnabled,
+        audience_max_score: Number(audienceMaxScore),
       }
       if (isEdit) {
         await adminEvals.update(id!, payload)
@@ -197,6 +222,83 @@ export default function AdminEvalFormPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Audience section */}
+        <div className="border rounded-lg p-4 bg-indigo-50/40 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="text-sm font-medium">Publikumswertung</label>
+              <p className="text-xs text-gray-500">Publikum kann per QR-Code einmalig abstimmen.</p>
+            </div>
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={audienceEnabled}
+                onChange={e => setAudienceEnabled(e.target.checked)}
+                className="h-4 w-4 rounded text-indigo-600"
+              />
+              Aktiv
+            </label>
+          </div>
+
+          {audienceEnabled && candidates.length === 0 && (
+            <div className="flex items-center gap-3">
+              <label className="text-sm text-gray-600">Max. Punkte (Publikum)</label>
+              <input
+                type="number"
+                min={1}
+                value={audienceMaxScore}
+                onChange={e => {
+                  const val = parseInt(e.target.value)
+                  setAudienceMaxScore(Number.isFinite(val) ? val : 1)
+                }}
+                className="w-24 border rounded px-2 py-1 text-sm"
+              />
+            </div>
+          )}
+
+          {audienceEnabled && candidates.length > 0 && (
+            <p className="text-xs text-gray-500">
+              Im Kandidaten-Modus wählt das Publikum nur einen Kandidaten.
+            </p>
+          )}
+
+          {audienceEnabled && isEdit && audienceUrl && (
+            <div className="pt-2 border-t border-indigo-100 space-y-2">
+              <div className="text-xs text-gray-500">Publikums-Link</div>
+              <div className="flex gap-2">
+                <input
+                  value={audienceUrl}
+                  readOnly
+                  className="flex-1 border rounded px-2 py-1 text-xs bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={copyAudienceUrl}
+                  className="text-xs bg-indigo-700 text-white px-3 rounded"
+                >
+                  {copied ? 'Kopiert' : 'Kopieren'}
+                </button>
+              </div>
+              <div className="flex items-center gap-4">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(audienceUrl)}`}
+                  alt="QR-Code Publikum"
+                  className="border rounded bg-white p-2"
+                />
+                <div className="text-xs text-gray-500">
+                  QR-Code auf Plakaten oder Folien zeigen, damit das Publikum direkt abstimmen kann.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {audienceEnabled && !isEdit && (
+            <p className="text-xs text-gray-500">
+              QR-Code wird nach dem Speichern verfügbar.
+            </p>
+          )}
         </div>
 
         <div className="flex gap-3 flex-wrap">

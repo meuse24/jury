@@ -92,7 +92,7 @@ export default function AdminAssignmentsPage() {
   }
 
   const handlePublish = async (force = false) => {
-    if (!force && !allSubmitted) {
+    if (assignedCount > 0 && !force && !allSubmitted) {
       const missing = pendingMembers.map(uid => statuses[uid]?.name ?? uid).join(', ')
       const confirmed = window.confirm(
         `Achtung: Folgende Jury-Mitglieder haben noch keine vollständige Wertung abgegeben:\n\n${missing}\n\nDie Ergebnisse trotzdem jetzt freigeben?`
@@ -136,6 +136,7 @@ export default function AdminAssignmentsPage() {
 
   const allSubmitted   = assignedCount > 0 && submittedCount === assignedCount
   const isPublished    = ev?.results_is_published ?? false
+  const audienceEnabled = ev?.audience_enabled ?? false
 
   // Members with missing or incomplete submissions
   const pendingMembers = [...selected].filter(uid => {
@@ -287,7 +288,7 @@ export default function AdminAssignmentsPage() {
       </button>
 
       {/* ── Ergebnisse freigeben ─────────────────────────────── */}
-      {assignedCount > 0 && (
+      {(assignedCount > 0 || audienceEnabled) && (
         <div className={`rounded-xl border-2 p-5 space-y-4 ${
           isPublished
             ? 'border-green-300 bg-green-50'
@@ -339,59 +340,68 @@ export default function AdminAssignmentsPage() {
             </>
           ) : (
             <>
-              <div className="text-sm text-amber-900 space-y-1">
-                <p className="font-medium">
-                  {pendingMembers.length} von {assignedCount} Jury-Mitglied{pendingMembers.length !== 1 ? 'ern' : ''} {pendingMembers.length !== 1 ? 'fehlen' : 'fehlt'} noch {hasCandidates ? 'Kandidaten-' : ''}Bewertungen:
-                </p>
-                <ul className="list-disc list-inside space-y-0.5 text-amber-800">
-                  {pendingMembers.map(uid => {
-                    const s = statuses[uid]
-                    const name = s?.name ?? uid
-                    if (hasCandidates && s?.candidates) {
-                      const missing = s.candidates.filter(c => !c.has_submission).map(c => c.candidate_name)
-                      return (
-                        <li key={uid}>
-                          {name}
-                          {missing.length > 0 && (
-                            <span className="text-amber-700"> – fehlt: {missing.join(', ')}</span>
-                          )}
-                        </li>
-                      )
-                    }
-                    return <li key={uid}>{name}</li>
-                  })}
-                </ul>
-              </div>
+              {assignedCount === 0 ? (
+                <div className="text-sm text-amber-900">
+                  Keine Jury-Mitglieder zugewiesen. Ergebnisse können trotzdem veröffentlicht werden
+                  {audienceEnabled ? ' (Publikumswertung aktiv).' : '.'}
+                </div>
+              ) : (
+                <div className="text-sm text-amber-900 space-y-1">
+                  <p className="font-medium">
+                    {pendingMembers.length} von {assignedCount} Jury-Mitglied{pendingMembers.length !== 1 ? 'ern' : ''} {pendingMembers.length !== 1 ? 'fehlen' : 'fehlt'} noch {hasCandidates ? 'Kandidaten-' : ''}Bewertungen:
+                  </p>
+                  <ul className="list-disc list-inside space-y-0.5 text-amber-800">
+                    {pendingMembers.map(uid => {
+                      const s = statuses[uid]
+                      const name = s?.name ?? uid
+                      if (hasCandidates && s?.candidates) {
+                        const missing = s.candidates.filter(c => !c.has_submission).map(c => c.candidate_name)
+                        return (
+                          <li key={uid}>
+                            {name}
+                            {missing.length > 0 && (
+                              <span className="text-amber-700"> – fehlt: {missing.join(', ')}</span>
+                            )}
+                          </li>
+                        )
+                      }
+                      return <li key={uid}>{name}</li>
+                    })}
+                  </ul>
+                </div>
+              )}
               {/* Konsequenz + Lösungshinweise */}
-              <div className="bg-white/70 border border-amber-200 rounded-lg px-3 py-2.5 space-y-2">
-                <p className="text-xs font-semibold text-amber-900">
-                  Auswirkung auf das Ergebnis:
-                </p>
-                <p className="text-xs text-amber-800">
-                  Die Durchschnittswerte werden nur aus <strong>{submittedCount}</strong> statt <strong>{assignedCount}</strong> Wertungen berechnet
-                  — fehlende Abgaben verzerren das Ergebnis, da einzelne Jury-Mitglieder überproportional gewichtet werden.
-                </p>
-                <p className="text-xs font-semibold text-amber-900 pt-1">Mögliche Maßnahmen:</p>
-                <div className="text-xs text-amber-800 flex gap-1.5">
-                  <span className="shrink-0 font-bold">1.</span>
-                  <span>
-                    Jury-Mitglieder ohne vollständige Abgabe oben <strong>abwählen</strong> und speichern —
-                    ihre Wertung wird aus der Berechnung entfernt.
-                  </span>
+              {assignedCount > 0 && (
+                <div className="bg-white/70 border border-amber-200 rounded-lg px-3 py-2.5 space-y-2">
+                  <p className="text-xs font-semibold text-amber-900">
+                    Auswirkung auf das Ergebnis:
+                  </p>
+                  <p className="text-xs text-amber-800">
+                    Die Durchschnittswerte werden nur aus <strong>{submittedCount}</strong> statt <strong>{assignedCount}</strong> Wertungen berechnet
+                    — fehlende Abgaben verzerren das Ergebnis, da einzelne Jury-Mitglieder überproportional gewichtet werden.
+                  </p>
+                  <p className="text-xs font-semibold text-amber-900 pt-1">Mögliche Maßnahmen:</p>
+                  <div className="text-xs text-amber-800 flex gap-1.5">
+                    <span className="shrink-0 font-bold">1.</span>
+                    <span>
+                      Jury-Mitglieder ohne vollständige Abgabe oben <strong>abwählen</strong> und speichern —
+                      ihre Wertung wird aus der Berechnung entfernt.
+                    </span>
+                  </div>
+                  <div className="text-xs text-amber-800 flex gap-1.5">
+                    <span className="shrink-0 font-bold">2.</span>
+                    <span>
+                      <Link
+                        to={`/admin/evaluations/${id}/edit`}
+                        className="font-semibold underline hover:text-amber-900 transition-colors"
+                      >
+                        Einreichfrist verlängern →
+                      </Link>
+                      {' '}damit ausstehende Mitglieder noch abgeben können.
+                    </span>
+                  </div>
                 </div>
-                <div className="text-xs text-amber-800 flex gap-1.5">
-                  <span className="shrink-0 font-bold">2.</span>
-                  <span>
-                    <Link
-                      to={`/admin/evaluations/${id}/edit`}
-                      className="font-semibold underline hover:text-amber-900 transition-colors"
-                    >
-                      Einreichfrist verlängern →
-                    </Link>
-                    {' '}damit ausstehende Mitglieder noch abgeben können.
-                  </span>
-                </div>
-              </div>
+              )}
 
               <button
                 onClick={() => handlePublish(false)}

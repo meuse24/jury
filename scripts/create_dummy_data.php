@@ -78,6 +78,8 @@ $evaluations = [
         'results_publish_at'   => $eval1PubAt,
         'results_is_published' => false,
         'results_published_at' => null,
+        'audience_enabled'     => true,
+        'audience_max_score'   => 10,
         'jury_assignments'     => [
             'a1b2c3d4-0002-0000-0000-000000000002',
             'a1b2c3d4-0003-0000-0000-000000000003',
@@ -101,6 +103,8 @@ $evaluations = [
         'results_publish_at'   => $eval2PubAt,
         'results_is_published' => false,
         'results_published_at' => null,
+        'audience_enabled'     => false,
+        'audience_max_score'   => 10,
         'jury_assignments'     => [
             'a1b2c3d4-0002-0000-0000-000000000002',
             'a1b2c3d4-0003-0000-0000-000000000003',
@@ -128,6 +132,8 @@ $evaluations = [
         'results_publish_at'   => $eval3PubAt,
         'results_is_published' => false,
         'results_published_at' => null,
+        'audience_enabled'     => true,
+        'audience_max_score'   => 10,
         'jury_assignments'     => [
             'a1b2c3d4-0002-0000-0000-000000000002',
             'a1b2c3d4-0003-0000-0000-000000000003',
@@ -225,15 +231,55 @@ $submissions = [
     ],
 ];
 
+// ---- AUDIENCE VOTES (Demo) ----
+$audienceVotes = [
+    // Wertung 1 (einfach): Punkte 0-10
+    [
+        'id'            => 'av100000-0000-0000-0000-000000000001',
+        'evaluation_id' => 'b2c3d4e5-0001-0000-0000-000000000001',
+        'device_id'     => 'device-101',
+        'candidate_id'  => null,
+        'score'         => 7,
+        'submitted_at'  => $now - 1200,
+    ],
+    [
+        'id'            => 'av100000-0000-0000-0000-000000000002',
+        'evaluation_id' => 'b2c3d4e5-0001-0000-0000-000000000001',
+        'device_id'     => 'device-102',
+        'candidate_id'  => null,
+        'score'         => 9,
+        'submitted_at'  => $now - 1100,
+    ],
+    // Wertung 3 (Kandidaten): Kandidat wählen
+    [
+        'id'            => 'av100000-0000-0000-0000-000000000003',
+        'evaluation_id' => 'b2c3d4e5-0003-0000-0000-000000000003',
+        'device_id'     => 'device-201',
+        'candidate_id'  => 'd0cand01-0003-0000-0000-000000000001',
+        'score'         => null,
+        'submitted_at'  => $now - 900,
+    ],
+    [
+        'id'            => 'av100000-0000-0000-0000-000000000004',
+        'evaluation_id' => 'b2c3d4e5-0003-0000-0000-000000000003',
+        'device_id'     => 'device-202',
+        'candidate_id'  => 'd0cand03-0003-0000-0000-000000000003',
+        'score'         => null,
+        'submitted_at'  => $now - 850,
+    ],
+];
+
 // Write files
 file_put_contents($dataDir . '/users.json',       json_encode($users,       JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 file_put_contents($dataDir . '/evaluations.json', json_encode($evaluations, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 file_put_contents($dataDir . '/submissions.json', json_encode($submissions, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+file_put_contents($dataDir . '/audience_votes.json', json_encode($audienceVotes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
 echo "Dummy-Daten angelegt:\n";
 echo "  Users:       " . count($users)       . " (admin + 3 Jury)\n";
 echo "  Evaluations: " . count($evaluations) . "\n";
 echo "  Submissions: " . count($submissions) . " (Demo-Wertungen für Wertung 3)\n";
+echo "  Audience:    " . count($audienceVotes) . " Publikumsstimmen\n";
 echo "\nLogins:\n";
 echo "  admin  / admin123  (Admin)\n";
 echo "  jury1  / jury123   (Maria Huber)\n";

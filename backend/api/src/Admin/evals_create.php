@@ -19,6 +19,8 @@ $openAt          = require_field($body, 'submission_open_at');
 $closeAt         = require_field($body, 'submission_close_at');
 $publishAt       = require_field($body, 'results_publish_at');
 $categoriesRaw   = $body['categories'] ?? [];
+$audienceEnabled = (bool)($body['audience_enabled'] ?? false);
+$audienceMax     = $body['audience_max_score'] ?? 10;
 
 if (!is_int($openAt) || !is_int($closeAt) || !is_int($publishAt)) {
     json_error('INVALID_TIMESTAMPS', 'Timestamps must be Unix integers.', 422);
@@ -57,6 +59,13 @@ foreach ($categoriesRaw as $i => $cat) {
     $categories[] = make_category($catName, $cat['description'] ?? '', $maxScore);
 }
 
+// Audience settings (simple mode uses max score, candidates mode ignores)
+if ($audienceEnabled) {
+    if (!is_int($audienceMax) || $audienceMax < 1) {
+        json_error('INVALID_AUDIENCE_MAX', 'audience_max_score must be a positive integer.', 422);
+    }
+}
+
 $eval = eval_repo()->create(make_evaluation([
     'title'                => $title,
     'description'          => $body['description'] ?? '',
@@ -65,6 +74,8 @@ $eval = eval_repo()->create(make_evaluation([
     'submission_open_at'   => $openAt,
     'submission_close_at'  => $closeAt,
     'results_publish_at'   => $publishAt,
+    'audience_enabled'     => $audienceEnabled,
+    'audience_max_score'   => $audienceMax,
 ]));
 
 json_response(['evaluation' => $eval], 201);

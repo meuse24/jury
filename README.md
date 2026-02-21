@@ -29,6 +29,7 @@
 - Wertungen erstellen mit konfigurierbar Zeitfenster, Kategorien (Max-Punkte), Modi:
   - **Einfacher Modus** – eine Gesamtbewertung pro Jury-Mitglied
   - **Kandidaten-Modus** – Jury bewertet jeden Kandidaten einzeln, automatisches Ranking
+- **Publikumswertung** (optional): per QR-Code aktivierbar, zählt als gleichrangiges Jury-Mitglied
 - Jury-Mitglieder zuweisen; Live-Einreichstatus pro Mitglied und Kandidat
 - Freigabe-Workflow zentral auf der Jury-&-Status-Seite:
   - Alle abgegeben → grüner CTA
@@ -49,7 +50,14 @@
 - Einfacher Modus: Gesamtpunktzahl mit Kategorie-Breakdown
 - Kandidaten-Modus: Rang-Enthüllung (letzter Platz → Sieger)
 - Zeigt „X von Y Jury-Wertungen" wenn nicht alle Mitglieder abgegeben haben
+- Zeigt Publikums-Teilnehmerzahl, wenn Publikumswertung aktiv ist
 - Seite nur erreichbar wenn Admin freigibt **und** Zeitpunkt erreicht
+
+### Publikum
+- Teilnahme per QR-Code / Link
+- Einmalige Stimmabgabe pro Gerät (Cookie-basiert, Best-Effort)
+- Kandidaten-Modus: Wahl eines Kandidaten
+- Einfacher Modus: Punkte 0–X (X konfigurierbar)
 
 ### Hilfe & Infografik
 - Hilfeseite mit 10 Abschnitten: Workflow + Best Practices für Admin und Jury
@@ -187,7 +195,8 @@
 │   ├── .htaccess                 Deny all HTTP
 │   ├── users.json
 │   ├── evaluations.json
-│   └── submissions.json
+│   ├── submissions.json
+│   └── audience_votes.json       Publikumsstimmen (pro Gerät einmalig)
 │
 ├── dist/                         Deployables (gitignored, per Build erzeugt)
 ├── scripts/
@@ -227,6 +236,8 @@
   "results_publish_at":   1700090000,
   "results_is_published": false,
   "results_published_at": null,
+  "audience_enabled":     true,
+  "audience_max_score":   10,
   "jury_assignments":     ["userId"],
   "created_at": 0,
   "updated_at": 0
@@ -252,6 +263,18 @@
 
 > `candidate_id: null` → einfacher Modus
 > `candidate_id: "uuid"` → Kandidaten-Modus (ein Datensatz pro Kandidat × Jury-Mitglied)
+
+### AudienceVote
+```json
+{
+  "id": "uuid",
+  "evaluation_id": "uuid",
+  "device_id": "string",
+  "candidate_id": "uuid | null",
+  "score": 0,
+  "submitted_at": 0
+}
+```
 
 ---
 
@@ -298,6 +321,8 @@
 | Method | Path | Auth | Beschreibung |
 |--------|------|------|---|
 | GET | `/api/public/evaluations/:id/results` | – | Öffentliche Ergebnisse (`mode: simple \| candidates`) |
+| GET | `/api/public/evaluations/:id/audience` | – | Publikums-Info (Status, Modus, Kandidaten, Max-Score) |
+| POST | `/api/public/evaluations/:id/audience/vote` | – | Publikums-Stimme abgeben (einmalig pro Gerät) |
 
 ---
 
@@ -310,6 +335,7 @@
 | `/hilfe` | – | Hilfe & Dokumentation (10 Abschnitte) |
 | `/hilfe/infografik` | – | Workflow-Infografik (Pan & Zoom) |
 | `/results/:id` | – | Öffentliche Ergebnisse (animiert) |
+| `/audience/:id` | – | Publikumswertung (QR-Link) |
 | `/admin/users` | admin | Benutzerverwaltung |
 | `/admin/evaluations` | admin | Wertungsübersicht |
 | `/admin/evaluations/new` | admin | Neue Wertung |
@@ -319,6 +345,16 @@
 | `/jury/evaluations/:id` | jury | Bewertungsformular |
 
 ---
+
+## Publikumswertung
+
+- Aktivierung in der Wertungs-Form (Admin) per Toggle.
+- QR-Link wird nach dem Speichern angezeigt (`/audience/:id`).
+- Einmalige Stimmabgabe pro Gerät (Cookie-basiert, Best-Effort).
+- Kandidaten-Modus: Publikum wählt einen Kandidaten.
+- Einfacher Modus: Punkte `0–X` (X konfigurierbar).
+- Ergebnisse: Publikum zählt als gleichrangiges Jury-Mitglied, Teilnehmerzahl wird angezeigt.
+- QR-Code wird im Admin-Formular über `api.qrserver.com` generiert (kann bei Bedarf lokal ersetzt werden).
 
 ## Lokale Entwicklung
 
@@ -432,6 +468,7 @@ Demo-Submissions (Talentwettbewerb, Kandidaten: Anna, Ben, Clara):
 | Workflow-Führung | CTAs, Warnungen, Auto-Redirect | Fehlbedienung und vergessene Schritte minimieren |
 | Fehlende Abgaben | Konsequenz erklären + Lösungshinweise (Abwählen / Frist verlängern) | Admin kann informiert entscheiden statt blind freigeben |
 | total_jury_count | In Public-Results-Response immer enthalten (simple + candidates) | Zuschauer sehen Vollständigkeit der Wertungsbasis |
+| Publikumswertung | Einmalige Stimme pro Gerät via Cookie (Best-Effort) | Niedrige Einstiegshürde, kein Login nötig |
 | Infografik Pan+Zoom | CSS-Transform (`translate` + `scale`), dynamische Container-Höhe, Zoom-Toolbar, Tastatur, Doppelklick 2× | Fit-to-View beim Laden; focal-point Zoom; kein Scroll-basiertes Pan → keine Scrollbalken; vollständige Eingabe: Maus, Rad, Touch, Tastatur, Buttons |
 | DRY-Utilities | `utils/formatting.ts` + `utils/errors.ts` + `EmptyState` | fmtDate, getErrorMessage und Leer-Zustand je einmalig zentralisiert |
 

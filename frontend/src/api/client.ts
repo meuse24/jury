@@ -75,6 +75,8 @@ export interface Evaluation {
   results_publish_at: number
   results_is_published: boolean
   results_published_at: number | null
+  audience_enabled?: boolean
+  audience_max_score?: number
   jury_assignments: string[]
   created_at: number
   updated_at: number
@@ -136,11 +138,28 @@ export interface CandidateResult {
 export interface PublicResults {
   evaluation: { id: string; title: string; description: string; published_at: number | null }
   mode: 'simple' | 'candidates'
+  audience_participant_count?: number
   // simple mode
   results?: AggregatedResult
   // candidates mode
   total_jury_count?: number
   candidates?: CandidateResult[]
+}
+
+export interface AudienceInfo {
+  evaluation: {
+    id: string
+    title: string
+    description: string
+    submission_open_at: number
+    submission_close_at: number
+  }
+  mode: 'simple' | 'candidates'
+  status: 'upcoming' | 'open' | 'closed'
+  audience_max_score: number
+  candidates: Candidate[]
+  already_voted: boolean
+  audience_participants: number
 }
 
 // ---- Auth API ----
@@ -216,4 +235,7 @@ export const jury = {
 // ---- Public API ----
 export const publicApi = {
   getResults: (id: string) => get<PublicResults>(`/public/evaluations/${id}/results`),
+  getAudienceInfo: (id: string) => get<AudienceInfo>(`/public/evaluations/${id}/audience`),
+  voteAudience: (id: string, body: { candidate_id?: string; score?: number }) =>
+    post<{ message: string; audience_participants: number }>(`/public/evaluations/${id}/audience/vote`, body),
 }

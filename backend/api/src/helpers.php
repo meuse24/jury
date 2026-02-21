@@ -77,3 +77,28 @@ function require_field(array $data, string $field, string $label = ''): mixed
     }
     return $data[$field];
 }
+
+// -------------------------------------------------------------------
+// Audience device cookie (best-effort uniqueness)
+// -------------------------------------------------------------------
+function get_or_create_audience_device_id(): string
+{
+    $cookieName = 'audience_device';
+    $existing = $_COOKIE[$cookieName] ?? '';
+    if (is_string($existing) && $existing !== '') {
+        return $existing;
+    }
+
+    $id = generate_uuid();
+    $path = defined('BASE_PATH') ? rtrim(BASE_PATH, '/') . '/' : '/';
+    $secure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    setcookie($cookieName, $id, [
+        'expires'  => time() + 60 * 60 * 24 * 365, // 1 year
+        'path'     => $path,
+        'secure'   => $secure,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    $_COOKIE[$cookieName] = $id;
+    return $id;
+}

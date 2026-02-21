@@ -128,6 +128,12 @@ function SimpleReveal({ data }: { data: PublicResults }) {
                 : 'Jury-Wertungen'}
             </div>
           </div>
+          {data.audience_participant_count !== undefined && (
+            <div>
+              <div className="text-4xl font-bold text-indigo-700">{data.audience_participant_count}</div>
+              <div className="text-sm text-gray-500 mt-1">Publikum</div>
+            </div>
+          )}
           <div>
             <div className="text-4xl font-bold text-indigo-700">{totalMax}</div>
             <div className="text-sm text-gray-500 mt-1">Max. Punkte</div>
@@ -201,6 +207,11 @@ function SimpleReveal({ data }: { data: PublicResults }) {
               ? `${results!.submission_count} von ${data.total_jury_count} Jury-Wertungen`
               : `${results!.submission_count} Jury-Wertungen`}
           </div>
+          {data.audience_participant_count !== undefined && (
+            <div className="text-indigo-300 text-sm">
+              Publikum: {data.audience_participant_count} Teilnehmer
+            </div>
+          )}
         </div>
       </div>
       <div className={`w-full max-w-md space-y-2 transition-all duration-700 delay-300 ${starsVisible ? 'opacity-100' : 'opacity-0'}`}>
@@ -319,6 +330,12 @@ function CandidatesReveal({ data }: { data: PublicResults }) {
             <div className="text-4xl font-bold text-indigo-700">{juryCount}</div>
             <div className="text-sm text-gray-500 mt-1">Jury-Mitglieder</div>
           </div>
+          {data.audience_participant_count !== undefined && (
+            <div>
+              <div className="text-4xl font-bold text-indigo-700">{data.audience_participant_count}</div>
+              <div className="text-sm text-gray-500 mt-1">Publikum</div>
+            </div>
+          )}
           <div>
             <div className="text-4xl font-bold text-indigo-700">{allCandidates[0]?.results.max_per_entry ?? 0}</div>
             <div className="text-sm text-gray-500 mt-1">Max. Punkte</div>
@@ -445,6 +462,11 @@ function CandidatesReveal({ data }: { data: PublicResults }) {
                   ? `${winner.results.submission_count} von ${juryCount} Jury-Wertungen`
                   : `${winner.results.submission_count} Jury-Wertungen`}
               </div>
+              {data.audience_participant_count !== undefined && (
+                <div className="text-amber-200 text-sm">
+                  Publikum: {data.audience_participant_count} Teilnehmer
+                </div>
+              )}
             </div>
           </div>
 

@@ -46,6 +46,8 @@ function user_public(array $user): array
  *   "results_publish_at": timestamp,
  *   "results_is_published": bool,
  *   "results_published_at": timestamp|null,
+ *   "audience_enabled": bool,
+ *   "audience_max_score": int,
  *   "jury_assignments": [userId, ...],
  *   "created_at": timestamp,
  *   "updated_at": timestamp
@@ -64,6 +66,8 @@ function make_evaluation(array $data): array
         'results_publish_at'   => $data['results_publish_at'],
         'results_is_published' => false,
         'results_published_at' => null,
+        'audience_enabled'     => $data['audience_enabled'] ?? false,
+        'audience_max_score'   => $data['audience_max_score'] ?? 10,
         'jury_assignments'     => [],
         'created_at'           => now_ts(),
         'updated_at'           => now_ts(),

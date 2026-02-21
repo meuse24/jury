@@ -16,6 +16,7 @@ require_once __DIR__ . '/src/Middleware/rbac.php';
 // These origins are also trusted for CSRF (see check_csrf in rbac.php).
 define('CORS_ALLOWED_ORIGINS', [
     'http://localhost:5173',  // Vite dev server
+    'http://127.0.0.1:5173',  // Vite dev server (loopback IP)
     'http://localhost:4321',  // Astro dev server
 ]);
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
@@ -126,6 +127,14 @@ function dispatch(string $method, string $route): void
     if (preg_match('#^/public/evaluations/([^/]+)/results$#', $route, $m)) {
         $_route_params = ['id' => $m[1]];
         if ($method === 'GET') { require __DIR__ . '/src/Public/results.php'; return; }
+    }
+    if (preg_match('#^/public/evaluations/([^/]+)/audience$#', $route, $m)) {
+        $_route_params = ['id' => $m[1]];
+        if ($method === 'GET') { require __DIR__ . '/src/Public/audience_info.php'; return; }
+    }
+    if (preg_match('#^/public/evaluations/([^/]+)/audience/vote$#', $route, $m)) {
+        $_route_params = ['id' => $m[1]];
+        if ($method === 'POST') { require __DIR__ . '/src/Public/audience_vote.php'; return; }
     }
 
     // 404
