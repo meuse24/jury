@@ -10,9 +10,19 @@ const BOTTOM_MARGIN = 56
 
 const clamp = (v: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, v))
 
+type WorkflowTab = 'admin' | 'jury' | 'zuschauer'
+
+const TABS: { key: WorkflowTab; label: string; file: string; alt: string; color: string; activeColor: string }[] = [
+  { key: 'admin',     label: 'Admin',     file: 'workflow_Admin.jpg',     alt: 'Admin-Workflow: Schritt-für-Schritt-Übersicht',     color: 'text-purple-600 border-purple-300 hover:bg-purple-50', activeColor: 'bg-purple-600 text-white border-purple-600' },
+  { key: 'jury',      label: 'Jury',      file: 'workflow_Jury.jpg',      alt: 'Jury-Workflow: Schritt-für-Schritt-Übersicht',      color: 'text-blue-600 border-blue-300 hover:bg-blue-50',       activeColor: 'bg-blue-600 text-white border-blue-600' },
+  { key: 'zuschauer', label: 'Zuschauer', file: 'workflow_Zuschauer.jpg', alt: 'Zuschauer-Workflow: Schritt-für-Schritt-Übersicht', color: 'text-green-600 border-green-300 hover:bg-green-50',     activeColor: 'bg-green-600 text-white border-green-600' },
+]
+
 export default function WorkflowPage() {
   const containerRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
+
+  const [activeTab, setActiveTab] = useState<WorkflowTab>('admin')
 
   // Transform state
   const [zoom, setZoom] = useState(1)
@@ -81,6 +91,14 @@ export default function WorkflowPage() {
     // Schedule fit after the container has its final height
     requestAnimationFrame(() => fitToView())
   }, [fitToView])
+
+  // ── Tab switch: reset and re-fit ──────────────────────────────────────────
+  const switchTab = useCallback((tab: WorkflowTab) => {
+    setActiveTab(tab)
+    setImgLoaded(false)
+    naturalW.current = 0
+    naturalH.current = 0
+  }, [])
 
   // ── Focal-point zoom ────────────────────────────────────────────────────────
   const applyZoom = useCallback(
@@ -261,6 +279,7 @@ export default function WorkflowPage() {
   }, [applyZoom, fitToView])
 
   const zoomPercent = Math.round(zoom * 100)
+  const currentTab = TABS.find(t => t.key === activeTab)!
 
   return (
     <div className="space-y-2">
@@ -275,8 +294,8 @@ export default function WorkflowPage() {
             ←
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">Workflow-Infografik</h1>
-            <p className="text-sm text-gray-500">Schritt-für-Schritt-Übersicht für Admin und Jury</p>
+            <h1 className="text-2xl font-bold">Workflow-Infografiken</h1>
+            <p className="text-sm text-gray-500">Schritt-für-Schritt-Übersicht für Admin, Jury und Zuschauer</p>
           </div>
         </div>
 
@@ -321,6 +340,21 @@ export default function WorkflowPage() {
         )}
       </div>
 
+      {/* Tab switcher */}
+      <div className="flex gap-2">
+        {TABS.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => switchTab(tab.key)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+              activeTab === tab.key ? tab.activeColor : tab.color
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* Pan/Zoom container */}
       <div
         ref={containerRef}
@@ -341,8 +375,8 @@ export default function WorkflowPage() {
       >
         <img
           ref={imgRef}
-          src={`${import.meta.env.BASE_URL}workflow.jpg`}
-          alt="Workflow-Infografik: Schritt-für-Schritt-Übersicht für Admin und Jury"
+          src={`${import.meta.env.BASE_URL}${currentTab.file}`}
+          alt={currentTab.alt}
           draggable={false}
           onLoad={onImageLoad}
           style={{

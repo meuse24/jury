@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { adminEvals, adminUsers, Evaluation, User, JurySubmissionStatus } from '../../api/client'
 import Alert from '../../components/Alert'
@@ -25,6 +25,10 @@ export default function AdminAssignmentsPage() {
   const [origin, setOrigin]               = useState('')
   const [qrDataUrl, setQrDataUrl]         = useState('')
   const [copied, setCopied]               = useState(false)
+  const [shareUserId, setShareUserId]     = useState<string | null>(null)
+  const [sharePassword, setSharePassword] = useState('')
+  const [shareCopied, setShareCopied]     = useState(false)
+  const modalRef = useRef<HTMLDivElement>(null)
 
   const loadAll = useCallback(async () => {
     const [er, ur] = await Promise.all([adminEvals.get(id!), adminUsers.list()])
@@ -153,8 +157,6 @@ export default function AdminAssignmentsPage() {
       : nowTs > slotCloseAt
         ? 'closed'
         : 'open'
-  const resultPath = `/results/${id ?? ''}`
-
   const basePath = import.meta.env.VITE_BASE_PATH || '/jurysystem'
   const audienceUrl = origin ? `${origin}${basePath}/audience/${id}` : ''
 
@@ -181,6 +183,75 @@ export default function AdminAssignmentsPage() {
     }
   }
 
+  // Esc key + focus trap for share modal
+  useEffect(() => {
+    if (!shareUserId) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setShareUserId(null); return }
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, input, [href], select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+        const first = focusable[0]
+        const last  = focusable[focusable.length - 1]
+        if (e.shiftKey) {
+          if (document.activeElement === first) { e.preventDefault(); last.focus() }
+        } else {
+          if (document.activeElement === last)  { e.preventDefault(); first.focus() }
+        }
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [shareUserId])
+
+  const loginUrl = origin ? `${origin}${basePath}/login` : ''
+
+  const buildShareText = (user: User) => {
+    const lines = [
+      `Jury-Zugang: ${ev?.title ?? ''}`,
+      '',
+      `Name: ${user.name}`,
+      `Link: ${loginUrl}`,
+      `Benutzer: ${user.username}`,
+    ]
+    if (sharePassword) lines.push(`Passwort: ${sharePassword}`)
+    if (slotOpenAt && slotCloseAt) {
+      lines.push('', `Zeitraum: ${fmtDate(slotOpenAt)} – ${fmtDate(slotCloseAt)}`)
+    }
+    return lines.join('\n')
+  }
+
+  const handleShare = async (user: User) => {
+    const text = buildShareText(user)
+    if (navigator.share) {
+      try {
+        await navigator.share({ text })
+      } catch {
+        // user cancelled share dialog
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(text)
+        setShareCopied(true)
+        setTimeout(() => setShareCopied(false), 1500)
+      } catch {
+        // clipboard not available
+      }
+    }
+  }
+
+  const handleCopyShare = async (user: User) => {
+    const text = buildShareText(user)
+    try {
+      await navigator.clipboard.writeText(text)
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 1500)
+    } catch {
+      // clipboard not available
+    }
+  }
+
   // Members with missing or incomplete submissions
   const pendingMembers = [...selected].filter(uid => {
     if (hasCandidates) {
@@ -193,7 +264,7 @@ export default function AdminAssignmentsPage() {
   if (loading) return <Spinner />
 
   return (
-    <div className="max-w-xl w-full space-y-6">
+    <div className="space-y-6">
 
       {/* Breadcrumb / Back */}
       <div className="flex items-center gap-3">
@@ -213,102 +284,11 @@ export default function AdminAssignmentsPage() {
       {error   && <Alert type="error">{error}</Alert>}
       {success && <Alert type="success">{success}</Alert>}
 
-      {/* Zusammenfassung */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white shadow rounded-lg p-4 text-center">
-          <div className="text-3xl font-bold text-indigo-700">{assignedCount}</div>
-          <div className="text-sm text-gray-500 mt-1">Zugewiesen</div>
-        </div>
-        <div className="bg-white shadow rounded-lg p-4 text-center">
-          <div className={`text-3xl font-bold ${allSubmitted ? 'text-green-600' : 'text-amber-600'}`}>
-            {submittedCount} / {assignedCount}
-          </div>
-          <div className="text-sm text-gray-500 mt-1">
-            {hasCandidates ? 'Vollständig bewertet' : 'Wertung abgegeben'}
-          </div>
-        </div>
-      </div>
+      {/* 2-column layout: sidebar (stats/timeslot/audience) + main (jury/publish) */}
+      <div className="space-y-4 lg:grid lg:grid-cols-[1fr_320px] lg:gap-6 lg:items-start lg:space-y-0">
 
-      <div className="bg-white shadow rounded-lg p-4 space-y-2">
-        <div className="text-sm font-medium text-gray-700">Abstimmungszeitslot</div>
-        {slotOpenAt && slotCloseAt ? (
-          <>
-            <div className="text-sm text-gray-600">
-              {fmtDate(slotOpenAt)} - {fmtDate(slotCloseAt)}
-            </div>
-            {slotStatus === 'closed' ? (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-amber-700">Der Abstimmungszeitslot ist abgelaufen.</p>
-                <Link
-                  to={resultPath}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex text-sm bg-indigo-700 hover:bg-indigo-800 text-white px-3 py-1.5 rounded font-medium transition-colors"
-                >
-                  Zum Ergebnis ↗
-                </Link>
-                {!isPublished && (
-                  <p className="text-xs text-gray-500">
-                    Falls noch nicht freigegeben, zeigt die Ergebnisseite einen Hinweis an.
-                  </p>
-                )}
-              </div>
-            ) : slotStatus === 'upcoming' ? (
-              <p className="text-sm text-gray-500">Die Abstimmung hat noch nicht begonnen.</p>
-            ) : (
-              <p className="text-sm text-green-700">Die Abstimmung ist aktuell geöffnet.</p>
-            )}
-          </>
-        ) : (
-          <p className="text-sm text-gray-500">Kein Zeitslot verfügbar.</p>
-        )}
-      </div>
-
-      {audienceEnabled && (
-        <div className="bg-white shadow rounded-lg p-5 space-y-3">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div>
-              <div className="text-sm font-medium">Publikumswertung</div>
-              <div className="text-xs text-gray-500">
-                Link/QR-Code fürs Publikum
-                {ev?.audience_participant_count !== undefined && (
-                  <span> · Teilnehmer: {ev.audience_participant_count}</span>
-                )}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={copyAudienceUrl}
-              className="text-xs bg-indigo-700 text-white px-3 py-1.5 rounded"
-            >
-              {copied ? 'Kopiert' : 'Link kopieren'}
-            </button>
-          </div>
-          <div className="flex gap-2">
-            <input
-              value={audienceUrl}
-              readOnly
-              className="flex-1 border rounded px-2 py-1 text-xs bg-white"
-            />
-          </div>
-          <div className="flex items-center gap-4">
-            {qrDataUrl ? (
-              <img
-                src={qrDataUrl}
-                alt="QR-Code Publikum"
-                className="border rounded bg-white p-2"
-              />
-            ) : (
-              <div className="w-[180px] h-[180px] flex items-center justify-center text-xs text-gray-500 border rounded bg-white">
-                QR-Code wird erstellt…
-              </div>
-            )}
-            <div className="text-xs text-gray-500">
-              QR-Code auf Plakaten oder Folien zeigen, damit das Publikum direkt abstimmen kann.
-            </div>
-          </div>
-        </div>
-      )}
+        {/* ── Main column (left on desktop) ── */}
+        <div className="space-y-4 order-2 lg:order-1">
 
       {/* Jury-Mitglieder */}
       <div className="bg-white shadow rounded-lg divide-y">
@@ -343,7 +323,21 @@ export default function AdminAssignmentsPage() {
                   className="h-4 w-4 rounded text-indigo-600 mt-0.5 shrink-0"
                 />
                 <div>
-                  <div className="font-medium text-sm">{u.name}</div>
+                  <div className="font-medium text-sm flex items-center gap-1.5">
+                    {u.name}
+                    {isSelected && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShareUserId(u.id); setSharePassword(''); setShareCopied(false) }}
+                        title="Zugangsdaten teilen"
+                        className="text-gray-400 hover:text-indigo-600 transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                          <path d="M13 4.5a2.5 2.5 0 1 1 .702 1.737L6.97 9.604a2.5 2.5 0 0 1 0 .792l6.733 3.367a2.5 2.5 0 1 1-.671 1.341l-6.733-3.367a2.5 2.5 0 1 1 0-3.474l6.733-3.367A2.5 2.5 0 0 1 13 4.5Z" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
                   <div className="text-xs text-gray-400">@{u.username}</div>
                   {willDelete && (
                     <span className="text-xs text-red-600 font-medium mt-1 block">⚠ Wertung wird gelöscht</span>
@@ -540,6 +534,160 @@ export default function AdminAssignmentsPage() {
           )}
         </div>
       )}
+
+        </div>{/* end main column */}
+
+        {/* ── Sidebar (right on desktop, first on mobile via order) ── */}
+        <div className="space-y-4 order-1 lg:order-2 lg:sticky lg:top-20">
+          {/* Zusammenfassung */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white shadow rounded-lg p-4 text-center">
+              <div className="text-3xl font-bold text-indigo-700">{assignedCount}</div>
+              <div className="text-sm text-gray-500 mt-1">Zugewiesen</div>
+            </div>
+            <div className="bg-white shadow rounded-lg p-4 text-center">
+              <div className={`text-3xl font-bold ${allSubmitted ? 'text-green-600' : 'text-amber-600'}`}>
+                {submittedCount} / {assignedCount}
+              </div>
+              <div className="text-sm text-gray-500 mt-1">
+                {hasCandidates ? 'Vollständig bewertet' : 'Abgegeben'}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white shadow rounded-lg p-4 space-y-2">
+            <div className="text-sm font-medium text-gray-700">Abstimmungszeitslot</div>
+            {slotOpenAt && slotCloseAt ? (
+              <>
+                <div className="text-sm text-gray-600">
+                  {fmtDate(slotOpenAt)} – {fmtDate(slotCloseAt)}
+                </div>
+                {slotStatus === 'closed' ? (
+                  <p className="text-sm font-medium text-amber-700">Abgelaufen</p>
+                ) : slotStatus === 'upcoming' ? (
+                  <p className="text-sm text-gray-500">Noch nicht begonnen</p>
+                ) : (
+                  <p className="text-sm text-green-700 font-medium">Aktuell geöffnet</p>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-gray-500">Kein Zeitslot verfügbar.</p>
+            )}
+          </div>
+
+          {audienceEnabled && (
+            <div className="bg-white shadow rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <div className="text-sm font-medium">Publikumswertung</div>
+                  <div className="text-xs text-gray-500">
+                    {ev?.audience_participant_count !== undefined && (
+                      <span>Teilnehmer: {ev.audience_participant_count}</span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={copyAudienceUrl}
+                  className="text-xs bg-indigo-700 text-white px-3 py-1.5 rounded shrink-0"
+                >
+                  {copied ? 'Kopiert' : 'Kopieren'}
+                </button>
+              </div>
+              <input
+                value={audienceUrl}
+                readOnly
+                aria-label="Publikums-Link"
+                className="w-full border rounded px-2 py-1 text-xs bg-white"
+              />
+              <div className="flex justify-center">
+                {qrDataUrl ? (
+                  <img
+                    src={qrDataUrl}
+                    alt="QR-Code Publikum"
+                    className="border rounded bg-white p-2"
+                  />
+                ) : (
+                  <div className="w-[180px] h-[180px] flex items-center justify-center text-xs text-gray-500 border rounded bg-white">
+                    QR-Code wird erstellt…
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>{/* end sidebar */}
+
+      </div>{/* end grid */}
+
+      {/* ── Teilen-Modal ─────────────────────────────── */}
+      {shareUserId && (() => {
+        const shareUser = users.find(u => u.id === shareUserId)
+        if (!shareUser) return null
+        return (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShareUserId(null)}>
+            <div
+              ref={modalRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="share-modal-title"
+              className="bg-white rounded-xl shadow-xl max-w-sm w-full p-5 space-y-4"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between">
+                <h3 id="share-modal-title" className="font-semibold text-gray-800">Zugangsdaten teilen</h3>
+                <button
+                  onClick={() => setShareUserId(null)}
+                  className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div className="text-sm text-gray-600 space-y-1">
+                <div><span className="text-gray-400">Name:</span> {shareUser.name}</div>
+                <div><span className="text-gray-400">Benutzer:</span> {shareUser.username}</div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  Passwort (optional eingeben)
+                </label>
+                <input
+                  type="text"
+                  value={sharePassword}
+                  onChange={e => setSharePassword(e.target.value)}
+                  placeholder="Passwort eingeben…"
+                  className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  autoFocus
+                />
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-3">
+                <pre className="text-xs text-gray-700 whitespace-pre-wrap break-words font-sans">{buildShareText(shareUser)}</pre>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleCopyShare(shareUser)}
+                  className="flex-1 text-sm bg-indigo-700 hover:bg-indigo-800 text-white py-2 rounded font-medium transition-colors"
+                >
+                  {shareCopied ? 'Kopiert!' : 'Kopieren'}
+                </button>
+                {typeof navigator !== 'undefined' && !!navigator.share && (
+                  <button
+                    type="button"
+                    onClick={() => handleShare(shareUser)}
+                    className="flex-1 text-sm border border-indigo-300 text-indigo-700 hover:bg-indigo-50 py-2 rounded font-medium transition-colors"
+                  >
+                    Teilen…
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

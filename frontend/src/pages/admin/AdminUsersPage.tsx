@@ -88,12 +88,15 @@ export default function AdminUsersPage() {
       {error   && <Alert type="error">{error}</Alert>}
       {success && <Alert type="success">{success}</Alert>}
 
-      {/* Formular */}
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="lg:grid lg:grid-cols-[340px_1fr] lg:gap-6 lg:items-start">
+
+      {/* Formular – sticky sidebar on desktop */}
+      <div className="lg:sticky lg:top-20 mb-6 lg:mb-0">
+      <div className="bg-white shadow rounded-lg p-5">
         <h2 className="text-lg font-semibold mb-4">
           {editId ? 'Benutzer bearbeiten' : 'Neuer Benutzer'}
         </h2>
-        <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={submit} className="space-y-3">
           {!editId && (
             <div>
               <label className="block text-sm font-medium mb-1">Benutzername</label>
@@ -139,7 +142,7 @@ export default function AdminUsersPage() {
               <option value="admin">Admin</option>
             </select>
           </div>
-          <div className="sm:col-span-2 flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap pt-1">
             <button
               type="submit"
               disabled={submitting}
@@ -162,12 +165,15 @@ export default function AdminUsersPage() {
 
       {/* Workflow-Hinweis wenn noch keine Jury-Mitglieder */}
       {!loading && juryCount === 0 && users.length > 0 && (
+        <div className="mt-4">
         <Alert type="info">
           Erstellen Sie zunächst Jury-Mitglieder (Rolle: Jury), um diese später Wertungen zuweisen zu können.
         </Alert>
+        </div>
       )}
+      </div>
 
-      {/* Tabelle – horizontal scrollbar auf Mobile */}
+      {/* Tabelle */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
         {loading ? <Spinner /> : (
           <div className="overflow-x-auto">
@@ -220,6 +226,8 @@ export default function AdminUsersPage() {
           </div>
         )}
       </div>
+
+      </div>{/* end grid */}
     </div>
   )
 }

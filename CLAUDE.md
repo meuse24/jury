@@ -43,24 +43,26 @@ Vollständige Client-Server-Webapp für Jury-Wertungen. Deployed auf Shared Host
 │   │   └── pages/
 │   │       ├── LoginPage.tsx
 │   │       ├── HelpPage.tsx          10 Abschnitte: Workflow + Best Practices (Admin + Jury)
-│   │       ├── WorkflowPage.tsx      Infografik-Seite (/hilfe/infografik): workflow.jpg mit transform-basiertem Pan & Zoom
+│   │       ├── WorkflowPage.tsx      Infografik-Seite (/hilfe/infografik): 3 Workflow-Bilder (Admin/Jury/Zuschauer) mit Tab-Umschaltung + Pan & Zoom
 │   │       ├── PublicResultsPage.tsx Öffentliche Ergebnisse – animierte Enthüllung (simple + candidates)
 │   │       │                         Zeigt "X von Y Jury-Wertungen" wenn Abgaben fehlen
 │   │       ├── AudienceVotePage.tsx  Publikumswertung; Ergebnislink bei "geschlossen" und nach Stimmabgabe
 │   │       ├── admin/
 │   │       │   ├── AdminUsersPage.tsx
 │   │       │   ├── AdminEvalsPage.tsx       Freigabe-Button entfernt → nur in AdminAssignmentsPage
-│   │       │   ├── AdminEvalFormPage.tsx    Erstellen + Bearbeiten; Auto-Redirect zu Assignments
+│   │       │   ├── AdminEvalFormPage.tsx    Erstellen + Bearbeiten; Auto-Redirect zu Assignments; Publikum-Konfig (kein QR)
 │   │       │   └── AdminAssignmentsPage.tsx Jury & Status + Freigabe (zentral); bei fehlenden Abgaben:
 │   │       │                                Konsequenz auf Durchschnitt + Lösungshinweise (Abwählen / Frist);
-│   │       │                                zeigt Abstimmungszeitslot inkl. "abgelaufen" + Ergebnislink
+│   │       │                                zeigt Abstimmungszeitslot + Publikums-QR-Code/Link
 │   │       └── jury/
 │   │           ├── JuryDashboardPage.tsx
 │   │           └── JuryEvalPage.tsx        Bewertungsformular – Kandidaten-Tabs oder einfacher Modus
 │   ├── public/
-│   │   └── workflow.jpg  Workflow-Infografik (Vite static asset → dist/)
+│   │   ├── workflow_Admin.jpg      Admin-Workflow-Infografik
+│   │   ├── workflow_Jury.jpg       Jury-Workflow-Infografik
+│   │   └── workflow_Zuschauer.jpg  Zuschauer-Workflow-Infografik
 │   ├── vite.config.ts    Build + assembleDistPlugin (kopiert api/, data/, .htaccess)
-│   └── .env              VITE_BASE_PATH=/apps/jury  (für Prod-Build)
+│   └── .env              VITE_BASE_PATH=/apps/jury  (gleich für Dev + Prod)
 ├── data/                 JSON-Datenspeicher (nicht in dist/ committed)
 │   ├── .htaccess         Deny all HTTP
 │   ├── users.json
@@ -167,8 +169,12 @@ cd backend/api && php -S localhost:8000 index.php
 
 # Frontend (Terminal 2)
 cd frontend && npm run dev
-# → http://localhost:5173/jurysystem/
+# → http://localhost:5173/apps/jury/
 ```
+
+Gleicher Basispfad `/apps/jury` für lokal und Produktion — kein `.env`-Wechsel nötig.
+Der Vite-Proxy leitet `/apps/jury/api/*` an den PHP-Server weiter und strippt den Basispfad
+(PHP empfängt `/api/*`). CORS akzeptiert dynamisch jeden `localhost`-Port.
 
 Optional vor Merge/Deploy:
 ```bash
@@ -183,15 +189,19 @@ cd frontend && npm run build
 
 Der Vite-Plugin `assembleDistPlugin` übernimmt automatisch:
 - `.htaccess` mit korrektem `RewriteBase` schreiben
-- `backend/api/` → `dist/api/` kopieren + `BASE_PATH` patchen
+- `backend/api/` → `dist/api/` kopieren + `BASE_PATH` auf `VITE_BASE_PATH` patchen
 - `data/*.json` → `dist/data/` kopieren
 
-### Konfiguration (Basispfad ändern)
+### Konfiguration
 `frontend/.env`:
 ```
-VITE_BASE_PATH=/apps/jury      # Prod
-VITE_BASE_PATH=/jurysystem     # Dev (lokal)
+VITE_BASE_PATH=/apps/jury
+VITE_API_TARGET=http://localhost:8000
 ```
+
+`VITE_BASE_PATH` wird sowohl für Dev als auch für den Prod-Build verwendet.
+Im Dev-Modus hat PHP `BASE_PATH=''` (Default), der Vite-Proxy strippt den Basispfad.
+Im Prod-Build patcht `assembleDistPlugin` den `BASE_PATH` in `config.php` auf den korrekten Wert.
 
 ### FTP Upload
 Inhalt von `dist/` nach `/apps/jury/` uploaden. **Versteckte Dateien anzeigen** in FileZilla aktivieren (Server → Versteckte Dateien anzeigen erzwingen).
@@ -204,7 +214,7 @@ Inhalt von `dist/` nach `/apps/jury/` uploaden. **Versteckte Dateien anzeigen** 
 |-------|-------------|---|
 | Auth | PHP Sessions, SameSite=Strict, HttpOnly | Einfach, sicher, kein Token-Handling |
 | CSRF | Origin/Referer-Check + SameSite | Kein separates Token nötig für SPA |
-| Dev-CORS | `CORS_ALLOWED_ORIGINS` Whitelist | localhost:5173 wird beim CSRF-Check übersprungen |
+| Dev-CORS | Dynamische `CORS_ALLOWED_ORIGINS` (Regex) | Jeder `localhost`-Port wird beim CSRF-Check akzeptiert |
 | Publish | Admin-Toggle + Zeitschranke (beide müssen erfüllt sein) | Admin kann vorab "armen" |
 | Freigabe-UI | Nur in AdminAssignmentsPage (nicht in der Liste) | Status immer sichtbar vor Freigabe; verhindert Versehen |
 | 404 vs 403 | Nicht freigegebene Ergebnisse → 404 | Verhindert Info-Leakage |
@@ -217,8 +227,9 @@ Inhalt von `dist/` nach `/apps/jury/` uploaden. **Versteckte Dateien anzeigen** 
 | Fehlende Abgaben | Konsequenz auf Durchschnitt erklären + 2 Lösungshinweise | Admin kann informiert entscheiden: Mitglied entfernen oder Frist verlängern |
 | total_jury_count | Immer in Public-Results-Response (simple + candidates) | Frontend zeigt "X von Y Wertungen" wenn Abgaben fehlen |
 | Publikum UX | Ergebnislink auf geschlossener Publikumsseite und auf "Danke für deine Stimme" | Nutzer gelangen ohne Umweg zur Ergebnisansicht |
-| Infografik | WorkflowPage mit workflow.jpg; CSS-Transform Pan & Zoom (translate + scale) | Dynamische Container-Höhe, Fit-to-View, Zoom-Toolbar (−/% /+/Einpassen), Doppelklick 2×, Tastatur (+/−/0/Pfeile), Mausrad focal-point, Pinch-Zoom, Drag-Pan; overflow-hidden ohne Scrollbalken |
+| Infografik | WorkflowPage mit 3 Bildern (Admin/Jury/Zuschauer) + Tab-Umschaltung; CSS-Transform Pan & Zoom | Dynamische Container-Höhe, Fit-to-View, Zoom-Toolbar, Doppelklick 2×, Tastatur, Mausrad focal-point, Pinch-Zoom, Drag-Pan |
 | DRY-Utilities | `utils/formatting.ts`, `utils/errors.ts`, `EmptyState` Komponente | fmtDate 3×, getErrorMessage 10×, EmptyState 2× → je 1× zentralisiert |
+| Publikums-QR-Code | Nur auf AdminAssignmentsPage (nicht im Formular) | Trennung Konfiguration (Formular) vs. Distribution (Jury & Status) |
 
 ---
 

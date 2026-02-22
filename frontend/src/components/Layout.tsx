@@ -45,7 +45,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* ── Header ─────────────────────────────────────────────── */}
       <header className="bg-indigo-700 text-white shadow-md sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
 
           {/* Logo */}
           <Link to="/" className="text-xl font-bold tracking-tight shrink-0 flex items-center gap-2">
@@ -154,7 +154,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {/* ── Mobile Dropdown (< sm) ── */}
         {menuOpen && (
           <div id="mobile-nav-menu" className="sm:hidden border-t border-indigo-600 bg-indigo-800">
-            <div className="max-w-5xl mx-auto px-4 py-4 flex flex-col gap-0.5">
+            <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col gap-0.5">
 
               {user && (
                 <div className="flex items-center gap-2 pb-3 mb-2 border-b border-indigo-600">
@@ -209,7 +209,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* ── Page Content ─────────────────────────────────────── */}
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
         {children}
       </main>
 

@@ -11,17 +11,16 @@
 ## 1. Produktions-Build erstellen
 
 ```bash
-# Standardmäßig wird /jurysystem als Basispfad verwendet:
-./scripts/build.sh
-
-# Für Produktion auf meuse24.info:
-./scripts/build.sh /apps/jury
-
-# Oder mit eigenem Basispfad:
-./scripts/build.sh /mein-pfad
+cd frontend && npm run build
 ```
 
+Der Basispfad wird aus `frontend/.env` (`VITE_BASE_PATH=/apps/jury`) gelesen.
 Danach enthält `dist/` alles, was hochgeladen werden muss.
+
+Alternativ mit `build.sh` (nur Unix/macOS):
+```bash
+./scripts/build.sh /apps/jury
+```
 
 ---
 
@@ -104,15 +103,16 @@ curl -I https://deine-domain.at/apps/jury/data/users.json
 ```bash
 # Terminal 1: PHP Backend
 cd backend/api
-php -S localhost:8000 -t . index.php
+php -S localhost:8000 index.php
 
 # Terminal 2: Vite Frontend
 cd frontend
 npm run dev
 ```
 
-Frontend läuft auf http://localhost:5173/jurysystem/
-API-Calls werden automatisch an http://localhost:8000 weitergeleitet.
+Frontend läuft auf http://localhost:5173/apps/jury/
+API-Calls werden per Vite-Proxy an http://localhost:8000 weitergeleitet.
+Gleicher Basispfad (`/apps/jury`) wie in Produktion — kein `.env`-Wechsel nötig.
 
 Optional vor dem Build:
 ```bash

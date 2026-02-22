@@ -85,11 +85,11 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
-        // Proxy /jurysystem/api/* → PHP dev server
-        // The key must match the full prefix the frontend sends
+        // Proxy /apps/jury/api/* → PHP dev server as /api/*
         [`${basePath}/api`]: {
           target: env.VITE_API_TARGET || 'http://localhost:8000',
           changeOrigin: true,
+          rewrite: (p: string) => p.replace(new RegExp(`^${basePath}`), ''),
         },
       },
     },

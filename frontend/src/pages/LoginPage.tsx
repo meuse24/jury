@@ -55,6 +55,7 @@ export default function LoginPage() {
             <label className="block text-sm font-medium mb-1">Passwort</label>
             <input
               type="password"
+              autoComplete="current-password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"

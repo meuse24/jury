@@ -127,7 +127,7 @@ export default function JuryEvalPage() {
   }
 
   return (
-    <div className="max-w-2xl w-full space-y-6">
+    <div className="max-w-3xl w-full space-y-6">
 
       {/* Back + Title */}
       <div className="flex items-center gap-3">

@@ -31,11 +31,14 @@
   - **Kandidaten-Modus** – Jury bewertet jeden Kandidaten einzeln, automatisches Ranking
 - **Publikumswertung** (optional): per QR-Code aktivierbar, zählt als gleichrangiges Jury-Mitglied
 - Publikums-Teilnehmerzahl in der Wertungsübersicht sichtbar
+- Im **Bearbeiten-Modus**: Publikums-Link direkt sichtbar mit Kopieren- und Teilen-Button;
+  Teilnehmeranzahl live; automatische Aktualisierung alle 60 s während des Abstimmungsfensters
+  mit Countdown-Anzeige und manuellem Refresh-Button
 - Jury-Mitglieder zuweisen; Live-Einreichstatus pro Mitglied und Kandidat
 - Abstimmungszeitslot (von/bis) sichtbar in **Jury & Status** inkl. Zustand:
   - noch nicht gestartet
   - geöffnet
-  - abgelaufen (mit Direktlink zur Ergebnisseite)
+  - abgelaufen
 - Freigabe-Workflow zentral auf der Jury-&-Status-Seite:
   - Alle abgegeben → grüner CTA
   - Noch ausstehend → Warnliste mit Namen + optionales „Trotzdem freigeben"
@@ -68,9 +71,10 @@
 
 ### Hilfe & Infografik
 - Hilfeseite mit 10 Abschnitten: Workflow + Best Practices für Admin und Jury
-- Infografik-Seite (`/hilfe/infografik`): workflow.jpg mit transform-basiertem Pan & Zoom
+- Infografik-Seite (`/hilfe/infografik`): 3 rollenspezifische Workflows mit Tab-Umschaltung
+  - Tabs: **Admin**, **Jury**, **Zuschauer** – jeweils eigenes Bild
+  - Fit-to-View beim Tab-Wechsel: Bild wird automatisch neu eingepasst
   - Container füllt verfügbare Viewport-Höhe dynamisch aus (kein festes `maxHeight`)
-  - Bild startet in Fit-to-View (zentriert, vollständig sichtbar)
   - Zoom-Toolbar: −, Prozentanzeige, +, Einpassen-Button
   - Mausrad-Zoom am Cursorpunkt (0,1× – 6×)
   - Doppelklick = 2× Zoom an Klickposition
@@ -170,7 +174,9 @@
 ├── frontend/                     React SPA
 │   ├── eslint.config.js          ESLint v9 Flat Config (TS + React Hooks)
 │   ├── public/
-│   │   └── workflow.jpg          Infografik-Bild (Vite static asset)
+│   │   ├── workflow_Admin.jpg     Infografik Admin-Workflow
+│   │   ├── workflow_Jury.jpg      Infografik Jury-Workflow
+│   │   └── workflow_Zuschauer.jpg Infografik Zuschauer-Workflow
 │   ├── src/
 │   │   ├── api/client.ts         Typed API-Client (fetch + credentials)
 │   │   ├── hooks/useAuth.tsx     AuthProvider + useAuth Hook
@@ -188,13 +194,15 @@
 │   │   └── pages/
 │   │       ├── LoginPage.tsx
 │   │       ├── HelpPage.tsx           10 Abschnitte: Workflow + Best Practices
-│   │       ├── WorkflowPage.tsx       Infografik mit transform-basiertem Pan & Zoom (/hilfe/infografik)
+│   │       ├── WorkflowPage.tsx       3 Infografiken (Admin/Jury/Zuschauer) mit Tabs + Pan & Zoom
 │   │       ├── PublicResultsPage.tsx  Animierte Ergebnisseite; "X von Y Wertungen"
 │   │       ├── admin/
-│   │       │   ├── AdminUsersPage.tsx       Benutzerverwaltung
+│   │       │   ├── AdminUsersPage.tsx       Benutzerverwaltung (2-Spalten-Layout: Formular + Tabelle)
 │   │       │   ├── AdminEvalsPage.tsx        Wertungsübersicht + Workflow-CTAs
-│   │       │   ├── AdminEvalFormPage.tsx     Erstellen/Bearbeiten
-│   │       │   └── AdminAssignmentsPage.tsx  Jury + Status + Freigabe + Lösungshinweise
+│   │       │   ├── AdminEvalFormPage.tsx     Erstellen/Bearbeiten (2-Spalten: Inhalt + Sidebar);
+│   │       │   │                             im Edit-Modus: Publikums-Link, Teilnehmer-Counter, Countdown
+│   │       │   └── AdminAssignmentsPage.tsx  Jury + Status + Freigabe (2-Spalten: Liste + Sidebar);
+│   │       │                                 zugängliches Teilen-Modal (ARIA, Fokus-Trap, Esc)
 │   │       └── jury/
 │   │           ├── JuryDashboardPage.tsx    Übersicht + Warnungen + Fortschritt
 │   │           └── JuryEvalPage.tsx         Bewertungsformular + Weiter-Führung
@@ -358,8 +366,10 @@
 
 ## Publikumswertung
 
-- Aktivierung in der Wertungs-Form (Admin) per Toggle.
-- QR-Link wird nach dem Speichern angezeigt (`/audience/:id`) – in Bearbeiten- und Jury-&-Status-Ansicht.
+- Aktivierung in der Wertungs-Form (Admin) per Toggle; Max-Punkte konfigurierbar (einfacher Modus).
+- **Im Bearbeiten-Modus** wird der Publikums-Link direkt angezeigt (Kopieren-Button, Teilen via Web Share API oder Clipboard-Fallback).
+- **Teilnehmer-Counter** mit Live-Aktualisierung: während des aktiven Abstimmungsfensters automatisch alle 60 s; Countdown-Anzeige im Refresh-Button; manueller Refresh jederzeit möglich.
+- QR-Code und Link auch auf der **Jury & Status**-Seite (inkl. QR-Bild).
 - Einmalige Stimmabgabe pro Gerät (Cookie-basiert, Best-Effort; Inkognito/Cookie-Löschen ermöglicht erneute Stimme).
 - Kandidaten-Modus: Publikum wählt einen Kandidaten; Stimmenanteil wird linear auf die Jury-Gesamtpunkte skaliert (100% = volle Punkte).
 - Einfacher Modus: Punkte `0–X` (0 erlaubt, X konfigurierbar; Default 10 falls nicht gesetzt).
@@ -489,6 +499,10 @@ Demo-Submissions (Talentwettbewerb, Kandidaten: Anna, Ben, Clara):
 | Publikumswertung | Einmalige Stimme pro Gerät via Cookie (Best-Effort, nicht manipulationssicher) | Niedrige Einstiegshürde, kein Login nötig |
 | Publikum nach Voting | Ergebnislink auf "geschlossen" und "Danke für deine Stimme" | Direkter Übergang zur öffentlichen Ergebnisansicht |
 | Infografik Pan+Zoom | CSS-Transform (`translate` + `scale`), dynamische Container-Höhe, Zoom-Toolbar, Tastatur, Doppelklick 2× | Fit-to-View beim Laden; focal-point Zoom; kein Scroll-basiertes Pan → keine Scrollbalken; vollständige Eingabe: Maus, Rad, Touch, Tastatur, Buttons |
+| Infografik Tabs | 3 rollenspezifische Bilder (Admin/Jury/Zuschauer), Tab-Umschaltung setzt Fit-to-View zurück | Keine Überfrachtung eines einzelnen Diagramms; Rol­len­per­spek­ti­ve sofort klar |
+| Responsives Layout | 2-Spalten-Grid (`lg:grid`) mit sticky Sidebar auf AdminUsersPage, AdminEvalFormPage, AdminAssignmentsPage; `max-w-6xl` im Layout | Nutzt verfügbaren Bildschirmplatz auf Desktop; stapelt mobil |
+| Accessibility Modal | `role="dialog"`, `aria-modal`, `aria-labelledby`, Fokus-Trap (Tab/Shift+Tab), Esc-Taste schließt | Teilen-Modal in AdminAssignmentsPage vollständig screenreader-zugänglich |
+| Audience Live-Counter | Interval läuft immer; Fenster-Check im Tick (nicht im Effect-Guard) | Start/Stopp an Voting-Window-Grenzen automatisch; kein manueller Re-Mount nötig |
 | DRY-Utilities | `utils/formatting.ts` + `utils/errors.ts` + `EmptyState` | fmtDate, getErrorMessage und Leer-Zustand je einmalig zentralisiert |
 | Linting | ESLint v9 Flat Config + TS + React Hooks | Konsistente statische Analyse (`npm run lint`) im Frontend |
 

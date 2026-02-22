@@ -4,7 +4,7 @@
 // ===================================================================
 
 // Base path when deployed in a subfolder (no trailing slash)
-define('BASE_PATH', getenv('APP_BASE_PATH') ?: '/jurysystem');
+define('BASE_PATH', getenv('APP_BASE_PATH') ?: '');
 
 // Debug mode (set APP_DEBUG=1 in environment)
 define('APP_DEBUG', getenv('APP_DEBUG') === '1');

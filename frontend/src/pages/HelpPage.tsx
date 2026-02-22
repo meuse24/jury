@@ -96,7 +96,7 @@ export default function HelpPage() {
       </div>
 
       {/* Schnellstart-Karten */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <a href="#admin-workflow"
           className="block bg-purple-50 border-2 border-purple-200 rounded-xl p-5 hover:border-purple-400 transition-colors group">
           <div className="flex items-center gap-2 mb-2">
@@ -113,6 +113,14 @@ export default function HelpPage() {
           </div>
           <p className="text-xs text-blue-700">Anmelden → Wertung öffnen → Punkte vergeben → Abgeben</p>
         </a>
+        <a href="#zuschauer-workflow"
+          className="block bg-green-50 border-2 border-green-200 rounded-xl p-5 hover:border-green-400 transition-colors group">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl">👥</span>
+            <span className="font-bold text-green-800 group-hover:underline">Zuschauer-Workflow</span>
+          </div>
+          <p className="text-xs text-green-700">QR-Code scannen → Abstimmen → Ergebnisse ansehen</p>
+        </a>
       </div>
 
       {/* Inhaltsverzeichnis */}
@@ -125,10 +133,14 @@ export default function HelpPage() {
           <li><a href="#admin-wertungen"   className="hover:underline">Admin: Wertungen erstellen</a></li>
           <li><a href="#admin-kandidaten"  className="hover:underline">Admin: Kandidaten-Modus</a></li>
           <li><a href="#admin-status"      className="hover:underline">Admin: Jury-Status &amp; Freigabe</a></li>
+          <li><a href="#admin-teilen"      className="hover:underline">Admin: Zugangsdaten teilen</a></li>
+          <li><a href="#admin-publikum"    className="hover:underline">Admin: Publikumswertung</a></li>
           <li><a href="#jury-workflow"     className="hover:underline">Jury: Kompletter Workflow</a></li>
           <li><a href="#jury-bewertung"    className="hover:underline">Jury: Bewertung abgeben</a></li>
-          <li><a href="#ergebnisse-public" className="hover:underline">Öffentliche Ergebnisseite</a></li>
-          <li><a href="#sicherheit"        className="hover:underline">Sicherheit &amp; Datenschutz</a></li>
+          <li><a href="#ergebnisse-public"   className="hover:underline">Öffentliche Ergebnisseite</a></li>
+          <li><a href="#zuschauer-workflow" className="hover:underline">Zuschauer: Kompletter Workflow</a></li>
+          <li><a href="#publikum-abstimmen" className="hover:underline">Zuschauer: Abstimmen im Detail</a></li>
+          <li><a href="#sicherheit"         className="hover:underline">Sicherheit &amp; Datenschutz</a></li>
         </ol>
       </nav>
 
@@ -426,9 +438,96 @@ export default function HelpPage() {
         </Card>
       </section>
 
-      {/* 7 – Jury-Workflow */}
+      {/* 7 – Zugangsdaten teilen */}
+      <section id="admin-teilen">
+        <SectionTitle nr="7" title="Admin: Zugangsdaten teilen" badge="Admin" />
+        <Card>
+          <p>
+            Auf der Seite <strong>Jury &amp; Status</strong> kannst du die Zugangsdaten jedes zugewiesenen Jury-Mitglieds
+            direkt per Teilen-Button weitergeben — z.&nbsp;B. per WhatsApp, E-Mail oder Zwischenablage.
+          </p>
+
+          <h3 className="font-semibold mt-4 mb-2">So funktioniert es</h3>
+          <Steps>
+            <Step>Öffne die Seite <em>Jury &amp; Status</em> einer Wertung.</Step>
+            <Step>Klicke neben dem Namen eines zugewiesenen Mitglieds auf das <strong>Teilen-Symbol</strong> (Pfeil-Icon).</Step>
+            <Step>Ein Dialog öffnet sich mit vorausgefülltem Login-Link, Name, Benutzername und Abstimmungszeitraum.</Step>
+            <Step>Gib optional das <strong>Passwort</strong> ein — es wird live in der Vorschau ergänzt.</Step>
+            <Step>Klicke auf <em>Kopieren</em> (Zwischenablage) oder <em>Teilen…</em> (Betriebssystem-Dialog: WhatsApp, Mail, etc.).</Step>
+          </Steps>
+
+          <h3 className="font-semibold mt-5 mb-2">Geteilte Nachricht (Beispiel)</h3>
+          <div className="bg-gray-50 border rounded-lg px-4 py-3 text-xs text-gray-700 font-mono whitespace-pre-wrap">
+{`Jury-Zugang: Musikwettbewerb 2026
+
+Name: Maria Huber
+Link: https://meuse24.info/apps/jury/login
+Benutzer: jury1
+Passwort: jury123
+
+Zeitraum: 22.02.2026, 14:00 – 22.02.2026, 18:00`}
+          </div>
+
+          <Note>
+            Passwörter sind verschlüsselt gespeichert und können nicht nachträglich abgerufen werden.
+            Du musst das Passwort kennen, um es im Teilen-Dialog eingeben zu können.
+          </Note>
+
+          <BestPractice>
+            Teile Zugangsdaten über einen sicheren Kanal (z.&nbsp;B. persönlich oder verschlüsselte Nachricht).
+            Der <em>Teilen…</em>-Button nutzt die Systemfreigabe des Geräts — auf Mobilgeräten erscheint
+            direkt die gewohnte App-Auswahl (WhatsApp, Signal, Mail, etc.).
+          </BestPractice>
+        </Card>
+      </section>
+
+      {/* 8 – Publikumswertung (Admin) */}
+      <section id="admin-publikum">
+        <SectionTitle nr="8" title="Admin: Publikumswertung" badge="Admin" />
+        <Card>
+          <p>
+            Optional kann das Publikum vor Ort per Smartphone abstimmen. Die Aktivierung erfolgt beim
+            Erstellen oder Bearbeiten einer Wertung. QR-Code und Link zum Verteilen findest du
+            anschließend auf der Seite <strong>Jury &amp; Status</strong>.
+          </p>
+
+          <h3 className="font-semibold mt-4 mb-2">Aktivierung (im Formular)</h3>
+          <Steps>
+            <Step>Öffne die Wertung zum Erstellen oder Bearbeiten.</Step>
+            <Step>Aktiviere die Checkbox <strong>Publikumswertung</strong>.</Step>
+            <Step>Lege die <strong>Maximalpunktzahl</strong> fest (z.&nbsp;B. 10).</Step>
+            <Step>Speichere die Wertung.</Step>
+          </Steps>
+
+          <h3 className="font-semibold mt-5 mb-2">Link &amp; QR-Code verteilen (auf Jury &amp; Status)</h3>
+          <Steps>
+            <Step>Öffne die Seite <em>Jury &amp; Status</em> der Wertung.</Step>
+            <Step>Im Bereich <strong>Publikumswertung</strong> wird automatisch ein <strong>QR-Code</strong> und ein kopierbarer <strong>Link</strong> angezeigt.</Step>
+            <Step>Klicke auf <em>Link kopieren</em> um die URL in die Zwischenablage zu kopieren.</Step>
+            <Step>Den QR-Code kannst du per Rechtsklick speichern und auf Plakaten, Folien oder Aushängen einbinden.</Step>
+          </Steps>
+
+          <h3 className="font-semibold mt-5 mb-2">Zeitslot &amp; Teilnehmer</h3>
+          <p className="text-sm text-gray-600">
+            Das Publikum kann nur innerhalb des konfigurierten Abstimmungszeitraums abstimmen.
+            Die aktuelle Teilnehmerzahl wird live auf der <em>Jury &amp; Status</em>-Seite angezeigt.
+          </p>
+
+          <Note>
+            Jedes Gerät kann nur einmal abstimmen (Cookie-basiert). Die Publikumsstimmen fließen
+            als eigene Kategorie in die Ergebnisse ein und sind von den Jury-Wertungen getrennt.
+          </Note>
+
+          <BestPractice>
+            Zeige den QR-Code während der Veranstaltung gut sichtbar auf einem Beamer oder Aushang.
+            Weise das Publikum darauf hin, dass der Link nur im angegebenen Zeitfenster funktioniert.
+          </BestPractice>
+        </Card>
+      </section>
+
+      {/* 9 – Jury-Workflow */}
       <section id="jury-workflow">
-        <SectionTitle nr="7" title="Jury: Kompletter Workflow" badge="Jury" badgeColor="blue" />
+        <SectionTitle nr="9" title="Jury: Kompletter Workflow" badge="Jury" badgeColor="blue" />
         <Card>
           <p className="font-medium text-gray-800">
             Als Jury-Mitglied siehst du nur die Wertungen, für die du zugewiesen wurdest.
@@ -476,9 +575,9 @@ export default function HelpPage() {
         </Card>
       </section>
 
-      {/* 8 – Jury: Bewertung */}
+      {/* 10 – Jury: Bewertung */}
       <section id="jury-bewertung">
-        <SectionTitle nr="8" title="Jury: Bewertung abgeben" badge="Jury" badgeColor="blue" />
+        <SectionTitle nr="10" title="Jury: Bewertung abgeben" badge="Jury" badgeColor="blue" />
         <Card>
           <h3 className="font-semibold mb-2">Einfacher Modus</h3>
           <Steps>
@@ -510,9 +609,9 @@ export default function HelpPage() {
         </Card>
       </section>
 
-      {/* 9 – Öffentliche Ergebnisse */}
+      {/* 11 – Öffentliche Ergebnisse */}
       <section id="ergebnisse-public">
-        <SectionTitle nr="9" title="Öffentliche Ergebnisseite" />
+        <SectionTitle nr="11" title="Öffentliche Ergebnisseite" />
         <Card>
           <p>
             Nach Freigabe durch den Administrator sind die Ergebnisse <strong>ohne Login</strong> öffentlich einsehbar.
@@ -545,9 +644,69 @@ export default function HelpPage() {
         </Card>
       </section>
 
-      {/* 10 – Sicherheit */}
+      {/* 12 – Zuschauer-Workflow */}
+      <section id="zuschauer-workflow">
+        <SectionTitle nr="12" title="Zuschauer: Kompletter Workflow" badge="Zuschauer" badgeColor="green" />
+        <Card>
+          <p className="font-medium text-gray-800">
+            Als Zuschauer nimmst du an der Publikumswertung teil — ohne Konto, ohne Anmeldung,
+            direkt vom Smartphone aus.
+          </p>
+
+          <div className="mt-4">
+            <WorkflowStep n={1} title="QR-Code scannen oder Link öffnen"
+              desc="Scanne den QR-Code auf dem Plakat, der Folie oder dem Aushang. Alternativ tippe den vom Veranstalter geteilten Link im Browser ein." />
+            <WorkflowStep n={2} title="Warten auf die Abstimmung"
+              desc="Falls die Abstimmung noch nicht geöffnet ist, zeigt die Seite einen Hinweis mit dem Startzeitpunkt. Lass die Seite einfach offen — sie aktualisiert sich automatisch." />
+            <WorkflowStep n={3} title="Punkte vergeben"
+              desc="Vergib deine Punkte per Schieberegler. Im Kandidaten-Modus bewertest du jeden Kandidaten einzeln. Im einfachen Modus gibt es eine Gesamtwertung." />
+            <WorkflowStep n={4} title="Abstimmen"
+              desc="Klicke auf Abstimmen. Deine Stimme wird sofort gespeichert. Eine Änderung ist danach nicht mehr möglich." />
+            <WorkflowStep n={5} title="Ergebnisse ansehen" last
+              desc="Nach der Stimmabgabe erscheint ein Link zur Ergebnisseite. Sobald der Veranstalter die Ergebnisse freigibt, kannst du sie dort live mitverfolgen — inklusive animierter Enthüllung." />
+          </div>
+
+          <BestPractice>
+            Halte dein Smartphone bereit, wenn der Veranstalter den QR-Code zeigt.
+            Die Abstimmung dauert nur wenige Sekunden — du brauchst keine App und kein Konto.
+          </BestPractice>
+        </Card>
+      </section>
+
+      {/* 13 – Zuschauer: Abstimmen im Detail */}
+      <section id="publikum-abstimmen">
+        <SectionTitle nr="13" title="Zuschauer: Abstimmen im Detail" badge="Zuschauer" badgeColor="green" />
+        <Card>
+          <p>
+            Als Zuschauer kannst du per Smartphone an der Publikumswertung teilnehmen —
+            ganz ohne Anmeldung oder Account.
+          </p>
+
+          <h3 className="font-semibold mt-4 mb-2">So stimmst du ab</h3>
+          <Steps>
+            <Step>Scanne den <strong>QR-Code</strong> vor Ort oder öffne den vom Veranstalter geteilten Link.</Step>
+            <Step>Warte, bis die Abstimmung geöffnet ist — vor Beginn wird ein Countdown angezeigt.</Step>
+            <Step>Vergib deine Punkte per Schieberegler (einfacher Modus) oder pro Kandidat (Kandidaten-Modus).</Step>
+            <Step>Klicke auf <em>Abstimmen</em> — deine Stimme wird sofort gespeichert.</Step>
+          </Steps>
+
+          <h3 className="font-semibold mt-5 mb-2">Was passiert danach?</h3>
+          <p className="text-sm text-gray-600">
+            Nach der Stimmabgabe erscheint eine Bestätigung mit einem <strong>Link zur Ergebnisseite</strong>.
+            Auch wenn die Abstimmung bereits geschlossen ist, wird dir der Ergebnislink angezeigt —
+            sobald der Veranstalter die Ergebnisse freigibt, kannst du sie dort einsehen.
+          </p>
+
+          <Note>
+            Jedes Gerät kann nur einmal abstimmen. Eine Änderung der Stimme ist nicht möglich.
+            Falls die Abstimmung noch nicht geöffnet ist, wird der Zeitpunkt der Öffnung angezeigt.
+          </Note>
+        </Card>
+      </section>
+
+      {/* 14 – Sicherheit */}
       <section id="sicherheit">
-        <SectionTitle nr="10" title="Sicherheit & Datenschutz" />
+        <SectionTitle nr="14" title="Sicherheit & Datenschutz" />
         <Card>
           <ul className="space-y-2.5 text-sm text-gray-700">
             <li className="flex items-start gap-2">
