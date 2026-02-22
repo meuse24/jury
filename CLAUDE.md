@@ -51,8 +51,9 @@ Vollständige Client-Server-Webapp für Jury-Wertungen. Deployed auf Shared Host
 │   │       │   ├── AdminUsersPage.tsx
 │   │       │   ├── AdminEvalsPage.tsx       Freigabe-Button entfernt → nur in AdminAssignmentsPage
 │   │       │   ├── AdminEvalFormPage.tsx    Erstellen + Bearbeiten; Auto-Redirect zu Assignments; Publikum-Konfig (kein QR)
-│   │       │   └── AdminAssignmentsPage.tsx Jury & Status + Freigabe (zentral); bei fehlenden Abgaben:
-│   │       │                                Konsequenz auf Durchschnitt + Lösungshinweise (Abwählen / Frist);
+│   │       │   └── AdminAssignmentsPage.tsx Jury & Status + Freigabe (zentral); Freigabe-Sperre während
+│   │       │                                aktivem Slot / laufender Publikumswertung; Ausnahme: alle Jury
+│   │       │                                abgestimmt + kein Publikum; Lösungshinweise bei fehlenden Abgaben;
 │   │       │                                zeigt Abstimmungszeitslot + Publikums-QR-Code/Link
 │   │       └── jury/
 │   │           ├── JuryDashboardPage.tsx
@@ -217,6 +218,7 @@ Inhalt von `dist/` nach `/apps/jury/` uploaden. **Versteckte Dateien anzeigen** 
 | Dev-CORS | Dynamische `CORS_ALLOWED_ORIGINS` (Regex) | Jeder `localhost`-Port wird beim CSRF-Check akzeptiert |
 | Publish | Admin-Toggle + Zeitschranke (beide müssen erfüllt sein) | Admin kann vorab "armen" |
 | Freigabe-UI | Nur in AdminAssignmentsPage (nicht in der Liste) | Status immer sichtbar vor Freigabe; verhindert Versehen |
+| Freigabe-Sperre | Blockiert während aktivem Slot oder laufender Publikumswertung; Ausnahme: allSubmitted && !audienceEnabled | Verhindert Veröffentlichung vor Abstimmungsende; vorzeitige Freigabe nur wenn Ergebnis vollständig und kein Publikum mehr erwartet |
 | 404 vs 403 | Nicht freigegebene Ergebnisse → 404 | Verhindert Info-Leakage |
 | JSON Concurrency | flock() + temp-file rename | Atomic, kein ext. Lock nötig |
 | DATA_DIR | Auto-detect: `../data` (dist) oder `../../data` (dev) | Ein config.php für beide Layouts |

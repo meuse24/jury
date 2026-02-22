@@ -39,9 +39,11 @@
   - noch nicht gestartet
   - geöffnet
   - abgelaufen
-- Freigabe-Workflow zentral auf der Jury-&-Status-Seite:
-  - Alle abgegeben → grüner CTA
-  - Noch ausstehend → Warnliste mit Namen + optionales „Trotzdem freigeben"
+- Freigabe-Workflow zentral auf der Jury-&-Status-Seite mit Plausibilitätsprüfung:
+  - **Gesperrt** 🔒 solange Abstimmungsfenster noch läuft oder Publikumswertung aktiv — mit konkretem Grund + Ablaufzeit
+  - **Ausnahme**: vorzeitige Freigabe erlaubt, wenn alle Jury-Mitglieder abgestimmt haben und keine Publikumswertung aktiv ist
+  - Alle abgegeben + Slot abgelaufen → grüner CTA
+  - Noch ausstehend + Slot abgelaufen → Warnliste mit Namen + optionales „Trotzdem freigeben"
   - Bereits freigegeben → Link zur Ergebnisseite + Freigabe zurückziehen
 - Workflow-Führung: Auto-Redirect nach Wertungserstellung direkt zur Jury-Zuweisung
 
@@ -106,6 +108,8 @@
           ✓ Abgegeben  |  ○ Ausstehend  |  X/Y Kandidaten
 
  5. Ergebnisse freigeben  [nur auf Jury-&-Status-Seite]
+      Slot noch offen →  🔒 Gesperrt mit Grund + Ablaufdatum
+                           Ausnahme: alle abgestimmt + kein Publikum → Freigabe mit Info-Hinweis
       Alle abgegeben  →  grüner Button "✓ Ergebnisse jetzt freigeben"
       Noch offen      →  Warnliste + Konsequenz-Erklärung + zwei Lösungshinweise:
                            a) Mitglied abwählen & speichern (Submission wird entfernt)
@@ -486,6 +490,7 @@ Demo-Submissions (Talentwettbewerb, Kandidaten: Anna, Ben, Clara):
 | Dev-CORS | `CORS_ALLOWED_ORIGINS` Whitelist | `localhost:5173` überspringt CSRF-Check |
 | Publish | Admin-Toggle + Zeitschranke (beide müssen erfüllt sein) | Admin kann Freigabe vorab aktivieren |
 | Freigabe-UI | Nur auf Jury-&-Status-Seite | Status vor Freigabe immer sichtbar; verhindert versehentliche Freigabe |
+| Freigabe-Sperre | Freigabe blockiert solange Slot aktiv oder Publikum läuft; Ausnahme: alle Jury abgestimmt + kein Publikum | Verhindert Veröffentlichung vor Abstimmungsende; vorzeitige Freigabe nur wenn Ergebnis vollständig |
 | 404 vs 403 | Nicht freigegebene Ergebnisse → 404 | Verhindert Information Leakage |
 | JSON Concurrency | `flock()` + temp-file rename | Atomares Schreiben ohne externe Lock-Dienste |
 | DATA_DIR | Auto-detect: `../data` (dist) oder `../../data` (dev) | Ein `config.php` für beide Layouts |
