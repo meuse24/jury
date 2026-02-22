@@ -157,6 +157,12 @@ export default function AdminAssignmentsPage() {
       : nowTs > slotCloseAt
         ? 'closed'
         : 'open'
+
+  // Freigabe-Logik: Slot muss abgelaufen sein — Ausnahme nur wenn alle Jury-Mitglieder
+  // abgestimmt haben UND keine Publikumswertung aktiv ist.
+  const slotExpired    = slotStatus === 'closed' || slotStatus === 'unknown'
+  const earlyPublishOk = allSubmitted && !audienceEnabled
+  const publishAllowed = slotExpired || earlyPublishOk
   const basePath = import.meta.env.VITE_BASE_PATH || '/jurysystem'
   const audienceUrl = origin ? `${origin}${basePath}/audience/${id}` : ''
 
@@ -412,12 +418,16 @@ export default function AdminAssignmentsPage() {
         <div className={`rounded-xl border-2 p-5 space-y-4 ${
           isPublished
             ? 'border-green-300 bg-green-50'
-            : allSubmitted
-              ? 'border-green-200 bg-green-50'
-              : 'border-amber-200 bg-amber-50'
+            : !publishAllowed
+              ? 'border-red-200 bg-red-50'
+              : allSubmitted
+                ? 'border-green-200 bg-green-50'
+                : 'border-amber-200 bg-amber-50'
         }`}>
           <div className="flex items-center gap-2">
-            <span className="text-lg">{isPublished ? '✅' : allSubmitted ? '🟢' : '⚠️'}</span>
+            <span className="text-lg">
+              {isPublished ? '✅' : !publishAllowed ? '🔒' : allSubmitted ? '🟢' : '⚠️'}
+            </span>
             <h2 className="font-semibold text-gray-800">Ergebnisse freigeben</h2>
           </div>
 
@@ -444,92 +454,135 @@ export default function AdminAssignmentsPage() {
                 </button>
               </div>
             </>
-          ) : allSubmitted ? (
+
+          ) : !publishAllowed ? (
+            // ── Gesperrt: Zeitfenster noch aktiv ──────────────────
             <>
-              <p className="text-sm text-green-800">
-                Alle {assignedCount} Jury-Mitglieder haben ihre Wertung abgegeben.
-                Die Ergebnisse können jetzt veröffentlicht werden.
-              </p>
-              <button
-                onClick={() => handlePublish(true)}
-                disabled={publishing}
-                className="w-full sm:w-auto text-sm bg-green-700 hover:bg-green-800 text-white px-6 py-2.5 rounded font-semibold disabled:opacity-50 transition-colors"
-              >
-                {publishing ? 'Freigeben…' : '✓ Ergebnisse jetzt freigeben'}
-              </button>
+              <div className="text-sm text-red-900 space-y-1.5">
+                <p className="font-medium">
+                  {slotStatus === 'upcoming'
+                    ? 'Das Abstimmungsfenster hat noch nicht begonnen.'
+                    : 'Das Abstimmungsfenster ist noch geöffnet.'}
+                </p>
+                {audienceEnabled && (
+                  <p className="text-red-800">
+                    Die Publikumswertung läuft noch — eine Freigabe jetzt würde das Endergebnis verfälschen.
+                  </p>
+                )}
+                {!allSubmitted && assignedCount > 0 && (
+                  <p className="text-red-800">
+                    {pendingMembers.length} Jury-Mitglied{pendingMembers.length !== 1 ? 'er haben' : ' hat'} noch nicht vollständig abgestimmt.
+                  </p>
+                )}
+              </div>
+              <div className="bg-white/80 border border-red-200 rounded-lg px-3 py-2.5 text-xs text-red-800">
+                Vorzeitige Freigabe ist nur möglich, wenn <strong>alle Jury-Mitglieder</strong> abgestimmt haben
+                und <strong>keine Publikumswertung</strong> aktiv ist.
+                Andernfalls bitte warten bis das Abstimmungsfenster abgelaufen ist
+                {slotCloseAt ? ` (${fmtDate(slotCloseAt)})` : ''}.
+              </div>
             </>
+
           ) : (
+            // ── Freigabe erlaubt (Slot abgelaufen oder Ausnahme) ──
             <>
-              {assignedCount === 0 ? (
-                <div className="text-sm text-amber-900">
-                  Keine Jury-Mitglieder zugewiesen. Ergebnisse können trotzdem veröffentlicht werden
-                  {audienceEnabled ? ' (Publikumswertung aktiv).' : '.'}
-                </div>
-              ) : (
-                <div className="text-sm text-amber-900 space-y-1">
-                  <p className="font-medium">
-                    {pendingMembers.length} von {assignedCount} Jury-Mitglied{pendingMembers.length !== 1 ? 'ern' : ''} {pendingMembers.length !== 1 ? 'fehlen' : 'fehlt'} noch {hasCandidates ? 'Kandidaten-' : ''}Bewertungen:
-                  </p>
-                  <ul className="list-disc list-inside space-y-0.5 text-amber-800">
-                    {pendingMembers.map(uid => {
-                      const s = statuses[uid]
-                      const name = s?.name ?? uid
-                      if (hasCandidates && s?.candidates) {
-                        const missing = s.candidates.filter(c => !c.has_submission).map(c => c.candidate_name)
-                        return (
-                          <li key={uid}>
-                            {name}
-                            {missing.length > 0 && (
-                              <span className="text-amber-700"> – fehlt: {missing.join(', ')}</span>
-                            )}
-                          </li>
-                        )
-                      }
-                      return <li key={uid}>{name}</li>
-                    })}
-                  </ul>
-                </div>
-              )}
-              {/* Konsequenz + Lösungshinweise */}
-              {assignedCount > 0 && (
-                <div className="bg-white/70 border border-amber-200 rounded-lg px-3 py-2.5 space-y-2">
-                  <p className="text-xs font-semibold text-amber-900">
-                    Auswirkung auf das Ergebnis:
-                  </p>
-                  <p className="text-xs text-amber-800">
-                    Die Durchschnittswerte werden nur aus <strong>{submittedCount}</strong> statt <strong>{assignedCount}</strong> Wertungen berechnet
-                    — fehlende Abgaben verzerren das Ergebnis, da einzelne Jury-Mitglieder überproportional gewichtet werden.
-                  </p>
-                  <p className="text-xs font-semibold text-amber-900 pt-1">Mögliche Maßnahmen:</p>
-                  <div className="text-xs text-amber-800 flex gap-1.5">
-                    <span className="shrink-0 font-bold">1.</span>
-                    <span>
-                      Jury-Mitglieder ohne vollständige Abgabe oben <strong>abwählen</strong> und speichern —
-                      ihre Wertung wird aus der Berechnung entfernt.
-                    </span>
-                  </div>
-                  <div className="text-xs text-amber-800 flex gap-1.5">
-                    <span className="shrink-0 font-bold">2.</span>
-                    <span>
-                      <Link
-                        to={`/admin/evaluations/${id}/edit`}
-                        className="font-semibold underline hover:text-amber-900 transition-colors"
-                      >
-                        Einreichfrist verlängern →
-                      </Link>
-                      {' '}damit ausstehende Mitglieder noch abgeben können.
-                    </span>
-                  </div>
+              {/* Hinweis bei vorzeitiger Freigabe */}
+              {earlyPublishOk && !slotExpired && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2.5 text-sm text-blue-800">
+                  Alle Jury-Wertungen liegen vor und die Publikumswertung ist nicht aktiv —
+                  vorzeitige Freigabe ist möglich.
+                  Das Abstimmungsfenster läuft noch bis {slotCloseAt ? fmtDate(slotCloseAt) : '?'}.
                 </div>
               )}
 
-              <button
-                onClick={() => handlePublish(false)}
-                disabled={publishing}
-                className="text-sm border border-amber-400 text-amber-800 hover:bg-amber-100 px-4 py-2 rounded font-medium disabled:opacity-50 transition-colors"
-              >
-                {publishing ? 'Freigeben…' : 'Trotzdem freigeben ⚠'}
-              </button>
+              {allSubmitted ? (
+                <>
+                  <p className="text-sm text-green-800">
+                    Alle {assignedCount} Jury-Mitglieder haben ihre Wertung abgegeben.
+                    Die Ergebnisse können jetzt veröffentlicht werden.
+                  </p>
+                  <button
+                    onClick={() => handlePublish(true)}
+                    disabled={publishing}
+                    className="w-full sm:w-auto text-sm bg-green-700 hover:bg-green-800 text-white px-6 py-2.5 rounded font-semibold disabled:opacity-50 transition-colors"
+                  >
+                    {publishing ? 'Freigeben…' : '✓ Ergebnisse jetzt freigeben'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  {assignedCount === 0 ? (
+                    <div className="text-sm text-amber-900">
+                      Keine Jury-Mitglieder zugewiesen. Ergebnisse können trotzdem veröffentlicht werden
+                      {audienceEnabled ? ' (Publikumswertung aktiv).' : '.'}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-amber-900 space-y-1">
+                      <p className="font-medium">
+                        {pendingMembers.length} von {assignedCount} Jury-Mitglied{pendingMembers.length !== 1 ? 'ern' : ''} {pendingMembers.length !== 1 ? 'fehlen' : 'fehlt'} noch {hasCandidates ? 'Kandidaten-' : ''}Bewertungen:
+                      </p>
+                      <ul className="list-disc list-inside space-y-0.5 text-amber-800">
+                        {pendingMembers.map(uid => {
+                          const s = statuses[uid]
+                          const name = s?.name ?? uid
+                          if (hasCandidates && s?.candidates) {
+                            const missing = s.candidates.filter(c => !c.has_submission).map(c => c.candidate_name)
+                            return (
+                              <li key={uid}>
+                                {name}
+                                {missing.length > 0 && (
+                                  <span className="text-amber-700"> – fehlt: {missing.join(', ')}</span>
+                                )}
+                              </li>
+                            )
+                          }
+                          return <li key={uid}>{name}</li>
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                  {/* Konsequenz + Lösungshinweise */}
+                  {assignedCount > 0 && (
+                    <div className="bg-white/70 border border-amber-200 rounded-lg px-3 py-2.5 space-y-2">
+                      <p className="text-xs font-semibold text-amber-900">
+                        Auswirkung auf das Ergebnis:
+                      </p>
+                      <p className="text-xs text-amber-800">
+                        Die Durchschnittswerte werden nur aus <strong>{submittedCount}</strong> statt <strong>{assignedCount}</strong> Wertungen berechnet
+                        — fehlende Abgaben verzerren das Ergebnis, da einzelne Jury-Mitglieder überproportional gewichtet werden.
+                      </p>
+                      <p className="text-xs font-semibold text-amber-900 pt-1">Mögliche Maßnahmen:</p>
+                      <div className="text-xs text-amber-800 flex gap-1.5">
+                        <span className="shrink-0 font-bold">1.</span>
+                        <span>
+                          Jury-Mitglieder ohne vollständige Abgabe oben <strong>abwählen</strong> und speichern —
+                          ihre Wertung wird aus der Berechnung entfernt.
+                        </span>
+                      </div>
+                      <div className="text-xs text-amber-800 flex gap-1.5">
+                        <span className="shrink-0 font-bold">2.</span>
+                        <span>
+                          <Link
+                            to={`/admin/evaluations/${id}/edit`}
+                            className="font-semibold underline hover:text-amber-900 transition-colors"
+                          >
+                            Einreichfrist verlängern →
+                          </Link>
+                          {' '}damit ausstehende Mitglieder noch abgeben können.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => handlePublish(false)}
+                    disabled={publishing}
+                    className="text-sm border border-amber-400 text-amber-800 hover:bg-amber-100 px-4 py-2 rounded font-medium disabled:opacity-50 transition-colors"
+                  >
+                    {publishing ? 'Freigeben…' : 'Trotzdem freigeben ⚠'}
+                  </button>
+                </>
+              )}
             </>
           )}
         </div>
