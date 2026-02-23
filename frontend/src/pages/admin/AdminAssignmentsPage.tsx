@@ -646,6 +646,14 @@ export default function AdminAssignmentsPage() {
                 >
                   {copied ? 'Kopiert' : 'Kopieren'}
                 </button>
+                <a
+                  href={audienceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs border border-indigo-700 text-indigo-700 px-3 py-1.5 rounded hover:bg-indigo-50 shrink-0"
+                >
+                  Öffnen
+                </a>
               </div>
               <input
                 value={audienceUrl}
