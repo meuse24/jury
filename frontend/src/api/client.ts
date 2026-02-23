@@ -207,6 +207,15 @@ export interface JurySubmissionStatus {
   }>
 }
 
+export interface AudienceVoteLog {
+  id: string
+  device_id: string
+  candidate_id: string | null
+  candidate_name: string | null
+  score: number | null
+  submitted_at: number
+}
+
 export const adminEvals = {
   list:        ()                      => get<{ evaluations: Evaluation[] }>('/admin/evaluations'),
   get:         (id: string)            => get<{ evaluation: Evaluation }>(`/admin/evaluations/${id}`),
@@ -219,6 +228,8 @@ export const adminEvals = {
     get<{ submissions: JurySubmissionStatus[]; has_candidates: boolean }>(`/admin/evaluations/${id}/submissions`),
   publish:     (id: string)            => post<{ evaluation: Evaluation }>(`/admin/evaluations/${id}/publish-results`),
   unpublish:   (id: string)            => post<{ evaluation: Evaluation }>(`/admin/evaluations/${id}/unpublish-results`),
+  getAudienceVotes: (id: string) =>
+    get<{ evaluation: { id: string; title: string }; votes: AudienceVoteLog[]; total: number }>(`/admin/evaluations/${id}/audience-votes`),
 }
 
 // ---- Jury API ----
